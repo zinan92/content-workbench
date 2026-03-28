@@ -1,0 +1,22 @@
+{
+  "featureId": "preparation-lifecycle-and-retry",
+  "reviewedAt": "2026-03-28T11:57:23+00:00",
+  "commitId": "68d289b",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature covers the preparation lifecycle, isolated failures, and retry behavior, but the preparation UI does not provide the required working path for ready items to continue into studio, leaving the preparation workflow incomplete for this feature's status page responsibilities.",
+    "issues": [
+      {
+        "file": "app/sessions/[sessionId]/preparation/page.tsx",
+        "line": 240,
+        "severity": "blocking",
+        "description": "Ready items render an `Open Studio` button that only logs to the console instead of navigating to a studio route. This leaves operators without the required working continuation path from the preparation status page once an item becomes `ready`, undermining the feature's preparation-page implementation and the expected prep-to-studio workflow."
+      }
+    ]
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Review failed. The lifecycle service, adapter boundary, and retry route are implemented, but the preparation status page ships a non-functional `Open Studio` control for ready items, so the feature is not fully complete from the operator workflow perspective."
+}

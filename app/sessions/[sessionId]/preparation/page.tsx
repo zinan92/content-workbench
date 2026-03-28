@@ -234,15 +234,12 @@ export default function PreparationPage() {
                     </button>
                   )}
                   {item.prepStatus === 'ready' && (
-                    <button
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-                      onClick={() => {
-                        // TODO: Navigate to studio
-                        console.log('Open studio for item:', item.id);
-                      }}
+                    <a
+                      href={`/items/${item.id}`}
+                      className="inline-block px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
                     >
                       Open Studio
-                    </button>
+                    </a>
                   )}
                 </div>
               </div>

@@ -167,3 +167,35 @@ export async function updatePlatformDraft(
 export async function sessionExists(sessionId: SessionId): Promise<boolean> {
   return await fileExists(getWorkspaceFile(sessionId));
 }
+
+/**
+ * Find an item by ID across all sessions
+ * This is a convenience method for studio access where we only have the item ID
+ */
+export async function findItemById(itemId: ContentItemId): Promise<ContentItem | null> {
+  const { promises: fs } = await import('fs');
+  const { getWorkspacesDir } = await import('../utils/paths');
+  
+  const workspacesDir = getWorkspacesDir();
+  
+  // Check if workspaces directory exists
+  if (!(await fileExists(workspacesDir))) {
+    return null;
+  }
+  
+  // List all session directories
+  const entries = await fs.readdir(workspacesDir, { withFileTypes: true });
+  const sessionIds = entries
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name);
+  
+  // Try to load the item from each session
+  for (const sessionId of sessionIds) {
+    const item = await loadItem(sessionId, itemId);
+    if (item) {
+      return item;
+    }
+  }
+  
+  return null;
+}
