@@ -3,7 +3,7 @@
  */
 
 import type { Session, ContentItem, Workspace, SessionId, ContentItemId } from '../domain/types';
-import { getWorkspaceFile, getItemFile, getSessionDir, getItemsDir } from '../utils/paths';
+import { getWorkspaceFile, getItemFile, getItemsDir } from '../utils/paths';
 import { readJsonFile, writeJsonFile, fileExists, listFiles } from '../utils/fs';
 
 /**

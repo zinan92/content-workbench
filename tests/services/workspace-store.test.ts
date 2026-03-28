@@ -2,7 +2,7 @@
  * Tests for workspace store persistence behavior
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
