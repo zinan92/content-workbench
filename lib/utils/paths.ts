@@ -8,7 +8,7 @@ import path from 'path';
  * Get the root data directory for the workspace
  */
 export function getDataRoot(): string {
-  return path.resolve(process.cwd(), 'data');
+  return process.env.DATA_ROOT || path.resolve(process.cwd(), 'data');
 }
 
 /**
