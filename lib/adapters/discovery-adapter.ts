@@ -36,6 +36,7 @@ export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Return fixture data representing a typical creator's recent videos
+    // Mix of high-engagement (recommended) and low-engagement (not recommended) content
     return {
       candidates: [
         {
@@ -72,13 +73,13 @@ export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
           authorId: 'user123',
         },
         {
-          title: '每日Vlog | 充实的一天',
+          title: '随手拍 | 路边的小花',
           sourceUrl: 'https://www.douyin.com/video/7234567890123456792',
           publishDate: '2026-03-17T18:45:00Z',
-          duration: 180,
-          likes: 45000,
-          comments: 890,
-          shares: 210,
+          duration: 15,
+          likes: 2500,
+          comments: 45,
+          shares: 8,
           authorName: 'Coffee Master',
           authorId: 'user123',
         },
@@ -105,13 +106,13 @@ export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
           authorId: 'user123',
         },
         {
-          title: '护肤分享 | 我的晨间护肤步骤',
+          title: '日常碎片 | 办公室的下午茶时光',
           sourceUrl: 'https://www.douyin.com/video/7234567890123456795',
           publishDate: '2026-03-14T07:30:00Z',
-          duration: 68,
-          likes: 95000,
-          comments: 2100,
-          shares: 560,
+          duration: 22,
+          likes: 3200,
+          comments: 68,
+          shares: 12,
           authorName: 'Coffee Master',
           authorId: 'user123',
         },
@@ -120,9 +121,9 @@ export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
           sourceUrl: 'https://www.douyin.com/video/7234567890123456796',
           publishDate: '2026-03-13T20:15:00Z',
           duration: 52,
-          likes: 32000,
-          comments: 680,
-          shares: 145,
+          likes: 4500,
+          comments: 95,
+          shares: 18,
           authorName: 'Coffee Master',
           authorId: 'user123',
         },

@@ -25,14 +25,12 @@ export async function GET(
 
     // For creator-profile sessions in discovery phase, run discovery if not yet done
     let items = await loadItems(sessionId);
-    let isPartial = false;
 
     if (session.inputType === 'creator-profile' && items.length === 0) {
       try {
         const result = await discoverAndHydrateSession(sessionId);
         items = result.items;
-        isPartial = result.isPartial;
-        // Reload session to get updated candidateIds
+        // Reload session to get updated candidateIds and isPartialDiscovery flag
         session = await loadSession(sessionId) || session;
       } catch (error) {
         console.error('Discovery error:', error);
@@ -46,7 +44,7 @@ export async function GET(
       return NextResponse.json({
         session,
         candidates: items,
-        isPartial,
+        isPartial: session.isPartialDiscovery || false,
       });
     }
 

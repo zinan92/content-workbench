@@ -72,8 +72,9 @@ export async function discoverAndHydrateSession(
     await saveItem(item);
   }
 
-  // Update session with candidateIds
+  // Update session with candidateIds and partial flag
   session.candidateIds = items.map(item => item.id);
+  session.isPartialDiscovery = discoveryResult.isPartial;
   session.updatedAt = now;
   await saveSession(session);
 

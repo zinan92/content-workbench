@@ -92,6 +92,7 @@ export interface Session {
   candidateIds: ContentItemId[];
   selectedIds: ContentItemId[];
   workflowPhase: 'intake' | 'discovery' | 'selection' | 'preparation' | 'studio';
+  isPartialDiscovery?: boolean; // True if discovery returned only part of available content
   createdAt: string; // ISO timestamp
   updatedAt: string; // ISO timestamp
 }

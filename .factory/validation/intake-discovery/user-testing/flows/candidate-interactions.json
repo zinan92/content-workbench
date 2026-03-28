@@ -1,0 +1,142 @@
+{
+  "groupId": "candidate-interactions",
+  "testedAt": "2026-03-28T11:13:09.265244+00:00",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "missionDir": "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064",
+    "browserSession": "candidate-interactions",
+    "sessionId": "session_0f58b9b85d990619224220cc"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CANDIDATES-003",
+      "title": "Sorting changes the visible candidate ordering inside the review flow",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open the creator-session candidate review page and record the current row order",
+          "expected": "Candidate review remains loaded with session context intact",
+          "observed": "Candidate review loaded at /sessions/session_0f58b9b85d990619224220cc with 8 visible candidate rows"
+        },
+        {
+          "action": "Click `Sort by Likes`",
+          "expected": "Visible rows reorder by the selected metric while staying on the candidate-review page",
+          "observed": "The table remained on the same session page and rows were displayed in descending likes order after the sort action"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-003-before-sort.png",
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-003-after-sort-likes.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_0f58b9b85d990619224220cc; no POST prepare request triggered during sorting"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CANDIDATES-004",
+      "title": "Recommendation-focused filtering narrows the visible candidate set",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Inspect the unfiltered candidate table",
+          "expected": "All current session candidates are visible before filtering",
+          "observed": "Eight candidate rows were visible before enabling the filter"
+        },
+        {
+          "action": "Enable `Recommended only`",
+          "expected": "Only recommended rows remain visible or an empty state is shown for non-matches, without affecting selection controls or starting preparation",
+          "observed": "The filter checkbox became checked but all 8 rows remained visible because every visible row was marked `✓ Yes`"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-003-before-sort.png",
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-004-after-filter.png"
+        ],
+        "consoleErrors": "none",
+        "network": "No prepare request triggered while toggling the recommendation filter"
+      },
+      "issues": "The assigned fixture session contains only recommended rows, so the recommended-only filter does not narrow the visible set and the contract behavior could not be demonstrated."
+    },
+    {
+      "id": "VAL-CANDIDATES-006",
+      "title": "Individual and bulk selection stay visible on the review surface",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select two candidate rows individually",
+          "expected": "Both rows remain visibly selected and the manual selection count updates on the review page",
+          "observed": "The first two candidate rows remained checked and the CTA updated to `Prepare Selected (2)`"
+        },
+        {
+          "action": "Use the select-all checkbox",
+          "expected": "All visible rows become selected with a visible bulk-selection state and no preparation starts automatically",
+          "observed": "All 8 visible rows became checked, the header checkbox became fully checked, and the CTA updated to `Prepare Selected (8)` without triggering preparation"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-006-multiple-selected-rows.png",
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-006-select-all-state.png"
+        ],
+        "consoleErrors": "none",
+        "network": "PATCH /api/sessions/session_0f58b9b85d990619224220cc/selection on selection changes; no POST prepare request triggered"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CANDIDATES-008",
+      "title": "Selection survives in-review table interactions",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select two candidate rows on the review page",
+          "expected": "The selected rows are visibly checked before any table interactions",
+          "observed": "`旅行Vlog | 周末短途游` and `新品开箱｜这款相机太惊艳了！` were selected and the CTA showed `Prepare Selected (2)`"
+        },
+        {
+          "action": "Change sort order and toggle the recommendation filter on then off",
+          "expected": "The same rows remain selected after sort/filter interactions while staying in the same session",
+          "observed": "After sorting by title and toggling the filter on and off, the same two rows remained checked and the CTA still showed `Prepare Selected (2)` on the same session page"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-008-selected-before-interactions.png",
+          "intake-discovery/candidate-interactions/VAL-CANDIDATES-008-selection-retained-after-sort-filter.png"
+        ],
+        "consoleErrors": "none",
+        "network": "PATCH /api/sessions/session_0f58b9b85d990619224220cc/selection persisted selected ids across sort/filter interactions"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The repo-level user-testing guidance file expected by the mission instructions was not present at /Users/wendy/.factory/library/user-testing.md.",
+      "resolved": false,
+      "resolution": "Proceeded with contract-driven validation using the mission guidance and validation contract only.",
+      "affectedAssertions": [
+        "VAL-CANDIDATES-003",
+        "VAL-CANDIDATES-004",
+        "VAL-CANDIDATES-006",
+        "VAL-CANDIDATES-008"
+      ]
+    },
+    {
+      "description": "The recommendation filter could not narrow the dataset because the assigned candidate fixture exposed only recommended rows.",
+      "resolved": false,
+      "resolution": "Recorded the limitation as a failed assertion because the required narrowing behavior could not be observed from this session.",
+      "affectedAssertions": [
+        "VAL-CANDIDATES-004"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 4 assertions: 3 passed and 1 failed. Sorting, row/bulk selection visibility, and selection persistence across sort/filter interactions worked; recommendation-only filtering did not narrow the visible candidate set in the assigned fixture session."
+}

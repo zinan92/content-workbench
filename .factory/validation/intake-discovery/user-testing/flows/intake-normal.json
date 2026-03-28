@@ -1,0 +1,65 @@
+{
+  "flowId": "intake-normal",
+  "baseUrl": "http://127.0.0.1:3100",
+  "assertions": [
+    {
+      "id": "VAL-INTAKE-001",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      ],
+      "notes": "Submitting https://www.douyin.com/user/MS4wLjABAAAAnormal stayed in scope, created session session_f8baea8a46c5d37a7d51fdc2, and routed to /sessions/session_f8baea8a46c5d37a7d51fdc2 candidate review. Network log captured POST /api/intake followed by GET /api/sessions/session_f8baea8a46c5d37a7d51fdc2. No browser errors were reported."
+    },
+    {
+      "id": "VAL-INTAKE-003",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png"
+      ],
+      "notes": "Submitting malformed input notaurl kept the browser on /, preserved the typed value, and showed the actionable message 'This link is not supported. Please provide a Douyin creator profile or single video link.' Network log showed POST /api/intake, and no browser errors were reported."
+    },
+    {
+      "id": "VAL-INTAKE-004",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      ],
+      "notes": "After creator-profile intake, the first destination was candidate review. DOM inspection found no prepare button and no pending/downloading/transcribing/ready/failed prep statuses, and captured network entries showed only intake/session reads with no prepare request. No browser errors were reported."
+    },
+    {
+      "id": "VAL-INTAKE-005",
+      "status": "blocked",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png"
+      ],
+      "notes": "Could not complete invalid-to-valid retry validation because the dev server on http://127.0.0.1:3100 stopped responding before the retry sequence. A follow-up open and curl -I both returned connection refused, so recovery could not be re-tested without restarting shared infrastructure, which is out of scope."
+    },
+    {
+      "id": "VAL-CANDIDATES-001",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      ],
+      "notes": "The creator-profile session rendered a populated candidate review table with 8 discovered videos as the first post-intake screen. Network logs showed GET /api/sessions/session_f8baea8a46c5d37a7d51fdc2, while DOM inspection found no prepare button or prep status text prior to manual action. No browser errors were reported."
+    },
+    {
+      "id": "VAL-CANDIDATES-002",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      ],
+      "notes": "Table header and rows visibly included title, publish date, duration, likes, comments, shares, score, recommended flag, and row selection checkboxes. Observed row values were populated for all 8 fixture rows; no browser errors were reported."
+    },
+    {
+      "id": "VAL-CANDIDATES-005",
+      "status": "passed",
+      "evidence": [
+        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      ],
+      "notes": "Candidate review visibly showed deterministic numeric scores (93..76) and a recommended flag of '✓ Yes' for rows without any AI workflow. Network requests captured only local session APIs, and DOM inspection confirmed score/recommended data present in rendered route data. No browser errors were reported."
+    }
+  ],
+  "summary": "Validated 7 assigned assertions for the intake-normal flow: 6 passed and 1 was blocked because the local dev server stopped responding before the retry/recovery assertion could be completed. Evidence was captured for the invalid intake state and creator-profile candidate review/table flow."
+}

@@ -1,0 +1,46 @@
+{
+  "flowId": "recovery-and-partial",
+  "baseUrl": "http://127.0.0.1:3100",
+  "assertions": [
+    {
+      "id": "VAL-CANDIDATES-009",
+      "status": "fail",
+      "summary": "Partial creator discovery rendered a usable 3-row candidate review table, but the required partial-results message/banner was absent and the session API response returned isPartial: false.",
+      "steps": [
+        {
+          "action": "Open the intake page on the partial-results server",
+          "expected": "Intake form is available",
+          "observed": "Intake form loaded at /."
+        },
+        {
+          "action": "Submit supported creator link https://www.douyin.com/user/MS4wLjABAAAApartial",
+          "expected": "Navigate to candidate review for a partial discovery session",
+          "observed": "Navigated to /sessions/session_d580d47ec11b37c31c364b8b candidate review."
+        },
+        {
+          "action": "Inspect the candidate-review page",
+          "expected": "Partial-results message is visible and fetched rows render in a usable table",
+          "observed": "A usable table with 3 candidate rows rendered, but no visible 'Partial Results' banner/message was present."
+        },
+        {
+          "action": "Inspect session/network response",
+          "expected": "GET /api/sessions/{id} indicates partial candidate payload",
+          "observed": "GET /api/sessions/session_d580d47ec11b37c31c364b8b returned 3 candidates with isPartial: false."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/recovery-and-partial/VAL-CANDIDATES-009-intake.png",
+          "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/recovery-and-partial/VAL-CANDIDATES-009-candidate-review.png",
+          "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/recovery-and-partial/VAL-CANDIDATES-009-partial-results-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": [
+          "GET /api/sessions/session_d580d47ec11b37c31c364b8b observed in browser request log",
+          "curl http://127.0.0.1:3100/api/sessions/session_d580d47ec11b37c31c364b8b -> { candidates: 3, isPartial: false }"
+        ]
+      }
+    }
+  ],
+  "summary": "Validated VAL-CANDIDATES-009 against the partial-results server: fail. The review table remained usable with 3 rows, but the required partial-results message was missing and the API did not mark the session as partial."
+}
