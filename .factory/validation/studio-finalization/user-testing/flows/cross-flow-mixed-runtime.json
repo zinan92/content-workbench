@@ -1,0 +1,71 @@
+{
+  "groupId": "cross-flow-mixed-runtime",
+  "testedAt": "2026-03-28T17:07:36.079620+00:00",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "sessionId": "session_124c27ed429dda4ca046f060",
+    "browserSessionId": "db3f1bb25c2a__studio-cross-mixed",
+    "prepMode": "mixed-outcomes",
+    "selectedIds": [
+      "item_098327167a5d0b7d9a7e6e0e",
+      "item_969c1f1c99fda7d848fdc1e3"
+    ]
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CROSS-003",
+      "title": "A failed item does not block continuing with another ready item",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open the seeded session and start preparation for the two selected items.",
+          "expected": "Preparation starts for both selected items in mixed-outcomes mode.",
+          "observed": "The seeded session showed the two selected rows and advanced to the preparation page for those items."
+        },
+        {
+          "action": "Wait for mixed outcomes on the preparation page.",
+          "expected": "The failing item remains failed while the other item reaches ready.",
+          "observed": "如何制作完美的咖啡拉花 ☕ stayed failed with reason \"Failed to download video: Video is private or unavailable\", while 今日穿搭分享 💃 became ready with an Open Studio link."
+        },
+        {
+          "action": "Check the failed item controls.",
+          "expected": "The failed item exposes an item-scoped retry affordance without blocking the ready item.",
+          "observed": "A Retry button remained visible for item_098327167a5d0b7d9a7e6e0e and a POST retry request was issued for only that item."
+        },
+        {
+          "action": "Open studio from the ready item.",
+          "expected": "The ready item opens studio successfully even though the other item is failed.",
+          "observed": "Open Studio for item_969c1f1c99fda7d848fdc1e3 navigated to /items/item_969c1f1c99fda7d848fdc1e3 and loaded the studio workspace."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-prep-mixed.png",
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-prep-after-trigger.png",
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-prep-mixed-final.png",
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-retry-visible.png",
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-studio-opened.png",
+          "studio-finalization/cross-flow-mixed-runtime/VAL-CROSS-003-prep-after-studio-return.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_124c27ed429dda4ca046f060 repeated while polling; POST /api/sessions/session_124c27ed429dda4ca046f060/prepare/item_098327167a5d0b7d9a7e6e0e/retry observed; GET /api/items/item_969c1f1c99fda7d848fdc1e3 observed when opening studio."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The initial wait used a broad URL pattern (**/prepare) while the app navigated to /preparation, so the automatic wait timed out even though the page had already loaded.",
+      "resolved": true,
+      "resolution": "Verified the actual URL, continued on the loaded preparation page, and captured evidence from there.",
+      "affectedAssertions": [
+        "VAL-CROSS-003"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 1 assertion: 1 passed. The failed preparation item did not block retry visibility or opening studio for the ready item."
+}

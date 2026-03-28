@@ -34,5 +34,9 @@
       "source": "setup"
     }
   ],
+  "followupEvidence": [
+    ".factory/validation/studio-finalization/user-testing/flows/cross-flow-mixed-runtime.json"
+  ],
+  "manualFollowupNote": "After the validator completed, VAL-CROSS-003 was re-verified against a live mixed-outcomes runtime to supplement the earlier structural/API confirmation. The ready item still opened studio while the sibling item remained failed.",
   "previousRound": null
 }
