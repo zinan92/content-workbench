@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { POST as intakePost } from '@/app/api/intake/route';
 import { GET as sessionGet } from '@/app/api/sessions/[sessionId]/route';
+import { loadItem } from '@/lib/services/workspace-store';
 import type { Session, ContentItem } from '@/lib/domain/types';
 
 let testDataDir: string;
@@ -24,6 +25,8 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (testDataDir) {
+    // Wait for background preparation to complete before cleanup
+    await new Promise(resolve => setTimeout(resolve, 400));
     await rm(testDataDir, { recursive: true, force: true });
   }
   delete process.env.DATA_ROOT;
@@ -162,5 +165,44 @@ describe('Single-video intake and preparation flow', () => {
     // Should have items for preparation
     expect(sessionData).toHaveProperty('items');
     expect(sessionData.items.length).toBe(1);
+  });
+
+  it('automatically starts preparation for single-video without manual POST /prepare', async () => {
+    // VAL-PREP-002: Single-video preparation auto-starts with exactly one item
+    const intakeRequest = new Request('http://localhost/api/intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        link: 'https://www.douyin.com/video/7777777777777777777',
+      }),
+    });
+
+    const intakeResponse = await intakePost(intakeRequest);
+    const intakeData = await intakeResponse.json();
+    const sessionId = intakeData.sessionId;
+
+    // Load session - this should trigger hydration AND auto-start preparation
+    const sessionRequest = new Request(`http://localhost/api/sessions/${sessionId}`);
+    const sessionResponse = await sessionGet(sessionRequest, {
+      params: Promise.resolve({ sessionId }),
+    });
+    
+    expect(sessionResponse.status).toBe(200);
+    const sessionData = await sessionResponse.json();
+    const items = sessionData.items as ContentItem[];
+    expect(items.length).toBe(1);
+    
+    const itemId = items[0].id;
+    
+    // Wait for background preparation to progress
+    // FixturePreparationAdapter has 100ms delays per status transition
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Verify preparation has started automatically (status should have progressed)
+    const updatedItem = await loadItem(sessionId, itemId);
+    expect(updatedItem).not.toBeNull();
+    expect(updatedItem?.prepStatus).not.toBe('pending');
+    // Status should be one of: downloading, transcribing, ready, or failed
+    expect(['downloading', 'transcribing', 'ready', 'failed']).toContain(updatedItem?.prepStatus);
   });
 });

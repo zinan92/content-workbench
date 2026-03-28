@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { loadSession, loadItems } from '@/lib/services/workspace-store';
 import { discoverAndHydrateSession, hydrateSingleVideoSession } from '@/lib/services/discovery-service';
+import { prepareItems } from '@/lib/services/prepare-service';
 
 export async function GET(
   request: Request,
@@ -46,6 +47,12 @@ export async function GET(
         items = [item];
         // Reload session to get updated candidateIds and selectedIds
         session = await loadSession(sessionId) || session;
+        
+        // VAL-PREP-002: Auto-start preparation for single-video sessions
+        // Start preparation immediately after hydration (async, fire and forget)
+        prepareItems(sessionId, [item.id]).catch(error => {
+          console.error('Auto-preparation background error:', error);
+        });
       } catch (error) {
         console.error('Single-video hydration error:', error);
         // Return session without items on hydration failure
