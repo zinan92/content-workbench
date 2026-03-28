@@ -25,6 +25,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  // Wait for any background preparation tasks to complete before cleanup
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
   if (testDataDir) {
     await rm(testDataDir, { recursive: true, force: true });
   }
@@ -102,9 +105,6 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     const data = await response.json();
     expect(data.preparedIds).toEqual([item1.id, item3.id]);
     expect(data.preparedIds).not.toContain(item2.id);
-
-    // Wait for background preparation to complete before test cleanup
-    await new Promise(resolve => setTimeout(resolve, 300));
   });
 
   it('should return 400 when no items are selected', async () => {
@@ -201,6 +201,9 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     const data = await response.json();
     expect(data.preparedIds).toEqual([item1.id]);
     
+    // Wait for background preparation to complete before reading items
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     // Verify item2 remains in pending state
     const items = await loadItems(session.id);
     const item2Status = items.find(i => i.id === item2.id)?.prepStatus;
@@ -243,8 +246,5 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     
     const data2 = await response2.json();
     expect(data2.preparedIds).toEqual([item1.id]);
-
-    // Wait for second background preparation to complete before cleanup
-    await new Promise(resolve => setTimeout(resolve, 300));
   });
 });

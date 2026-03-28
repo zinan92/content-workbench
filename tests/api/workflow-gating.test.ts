@@ -29,6 +29,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  // Wait for any background preparation tasks to complete before cleanup
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
   if (testDataDir) {
     await rm(testDataDir, { recursive: true, force: true });
   }
