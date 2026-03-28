@@ -196,4 +196,91 @@ describe('POST /api/intake', () => {
       expect(response.status).toBe(400);
     });
   });
+
+  describe('recoverable discovery failures (VAL-INTAKE-006)', () => {
+    it('returns 422 with preserved link when supported Douyin creator link fails resolution', async () => {
+      // Trigger discovery failure mode
+      process.env.CONTENT_WORKBENCH_DISCOVERY_MODE = 'fail-on-resolution';
+
+      const link = 'https://www.douyin.com/user/MS4wLjABAAAAfail';
+      const request = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(422);
+
+      const data = await response.json();
+      expect(data).toMatchObject({
+        success: false,
+        error: expect.stringContaining('resolve'),
+        errorType: 'resolution-failure',
+        inputType: 'creator-profile',
+        preservedLink: link,
+      });
+
+      // Clean up
+      delete process.env.CONTENT_WORKBENCH_DISCOVERY_MODE;
+    });
+
+    it('returns 422 with preserved link when supported Douyin video link fails resolution', async () => {
+      // Trigger discovery failure mode
+      process.env.CONTENT_WORKBENCH_DISCOVERY_MODE = 'fail-on-resolution';
+
+      const link = 'https://www.douyin.com/video/7234567890123456789';
+      const request = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(422);
+
+      const data = await response.json();
+      expect(data).toMatchObject({
+        success: false,
+        error: expect.stringContaining('resolve'),
+        errorType: 'resolution-failure',
+        inputType: 'single-video',
+        preservedLink: link,
+      });
+
+      // Clean up
+      delete process.env.CONTENT_WORKBENCH_DISCOVERY_MODE;
+    });
+
+    it('distinguishes resolution failures from unsupported-scope validation errors', async () => {
+      // Unsupported scope error
+      const unsupportedRequest = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link: 'https://www.youtube.com/watch?v=test' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const unsupportedResponse = await POST(unsupportedRequest);
+      expect(unsupportedResponse.status).toBe(400);
+      const unsupportedData = await unsupportedResponse.json();
+      expect(unsupportedData.inputType).toBe('unsupported');
+      expect(unsupportedData).not.toHaveProperty('errorType');
+
+      // Resolution failure
+      process.env.CONTENT_WORKBENCH_DISCOVERY_MODE = 'fail-on-resolution';
+      const resolutionRequest = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link: 'https://www.douyin.com/user/MS4wLjABAAAAfail' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const resolutionResponse = await POST(resolutionRequest);
+      expect(resolutionResponse.status).toBe(422);
+      const resolutionData = await resolutionResponse.json();
+      expect(resolutionData.errorType).toBe('resolution-failure');
+      expect(resolutionData.inputType).toBe('creator-profile');
+
+      delete process.env.CONTENT_WORKBENCH_DISCOVERY_MODE;
+    });
+  });
 });

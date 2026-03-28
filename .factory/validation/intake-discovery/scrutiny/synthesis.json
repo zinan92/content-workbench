@@ -1,0 +1,46 @@
+{
+  "milestone": "intake-discovery",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "npm run test -- --run --maxWorkers=5",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 3,
+    "failed": 1,
+    "failedFeatures": [
+      "link-intake-classification-and-routing"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "link-intake-classification-and-routing",
+      "severity": "blocking",
+      "description": "Hostname validation uses `hostname.includes('douyin.com')`, which incorrectly accepts attacker-controlled domains like `douyin.com.evil.com` or `notdouyin.com`. This can misclassify unsupported links as supported and create sessions for invalid domains. Validation must require exact approved hosts (e.g., `www.douyin.com`, `douyin.com`, `v.douyin.com`) instead of substring matching."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "URL-validation pitfall note for strict hostname allowlists",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": null
+}

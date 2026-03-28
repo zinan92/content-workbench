@@ -184,6 +184,29 @@ export class PartialFixtureDiscoveryAdapter implements DiscoveryAdapter {
 }
 
 /**
+ * Discovery resolution error for supported links that fail to resolve
+ */
+export class DiscoveryResolutionError extends Error {
+  constructor(message: string, public readonly link: string) {
+    super(message);
+    this.name = 'DiscoveryResolutionError';
+  }
+}
+
+/**
+ * Failing discovery adapter for testing resolution failures
+ */
+export class FailingDiscoveryAdapter implements DiscoveryAdapter {
+  async discoverFromCreatorProfile(profileUrl: string): Promise<DiscoveryResult> {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    throw new DiscoveryResolutionError(
+      'Failed to resolve creator profile. The profile may be private, deleted, or temporarily unavailable.',
+      profileUrl
+    );
+  }
+}
+
+/**
  * Get the appropriate discovery adapter based on environment configuration
  */
 export function getDiscoveryAdapter(): DiscoveryAdapter {
@@ -194,6 +217,14 @@ export function getDiscoveryAdapter(): DiscoveryAdapter {
   if (mode === 'mediacrawler') {
     // TODO: Implement real MediaCrawler adapter when stable
     throw new Error('MediaCrawler adapter not yet implemented. Use fixtures mode for V1.');
+  }
+
+  if (mode === 'fail-on-resolution') {
+    return new FailingDiscoveryAdapter();
+  }
+
+  if (mode === 'partial') {
+    return new PartialFixtureDiscoveryAdapter();
   }
 
   // Default to fixture mode for stable V1 validation

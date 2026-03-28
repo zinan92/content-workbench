@@ -141,6 +141,83 @@ describe('GET /api/sessions/[sessionId]', () => {
     });
   });
 
+  describe('partial discovery results (VAL-CANDIDATES-009)', () => {
+    it('returns partial flag and shows usable candidate table when discovery is incomplete', async () => {
+      // Create a creator-profile session via intake
+      const intakeRequest = new Request('http://localhost/api/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          link: 'https://www.douyin.com/user/MS4wLjABAAAApartial',
+        }),
+      });
+
+      // Use partial discovery mode
+      process.env.CONTENT_WORKBENCH_DISCOVERY_MODE = 'partial';
+
+      const intakeResponse = await intakePost(intakeRequest);
+      expect(intakeResponse.status).toBe(200);
+
+      const intakeData = await intakeResponse.json();
+      const sessionId = intakeData.sessionId;
+
+      // Load the session (should trigger partial discovery)
+      const sessionRequest = new Request(`http://localhost/api/sessions/${sessionId}`);
+      const paramsPromise = Promise.resolve({ sessionId });
+
+      const sessionResponse = await GET(sessionRequest, { params: paramsPromise });
+      expect(sessionResponse.status).toBe(200);
+
+      const sessionData = await sessionResponse.json();
+
+      // Verify partial flag is set
+      expect(sessionData.isPartial).toBe(true);
+
+      // Verify candidates are still returned despite being partial
+      const candidates = sessionData.candidates as ContentItem[];
+      expect(candidates.length).toBeGreaterThan(0);
+      expect(candidates.length).toBeLessThan(8); // Should be fewer than normal fixture count
+
+      // Verify each candidate is properly structured
+      for (const candidate of candidates) {
+        expect(candidate).toHaveProperty('id');
+        expect(candidate).toHaveProperty('source');
+        expect(candidate).toHaveProperty('simpleScore');
+        expect(candidate).toHaveProperty('recommended');
+        expect(typeof candidate.simpleScore).toBe('number');
+      }
+
+      // Clean up
+      delete process.env.CONTENT_WORKBENCH_DISCOVERY_MODE;
+    });
+
+    it('returns isPartial false for complete discovery', async () => {
+      // Create a creator-profile session with normal discovery
+      const intakeRequest = new Request('http://localhost/api/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          link: 'https://www.douyin.com/user/MS4wLjABAAAAcomplete',
+        }),
+      });
+
+      const intakeResponse = await intakePost(intakeRequest);
+      const intakeData = await intakeResponse.json();
+      const sessionId = intakeData.sessionId;
+
+      // Load the session
+      const sessionRequest = new Request(`http://localhost/api/sessions/${sessionId}`);
+      const paramsPromise = Promise.resolve({ sessionId });
+
+      const sessionResponse = await GET(sessionRequest, { params: paramsPromise });
+      const sessionData = await sessionResponse.json();
+
+      // Verify isPartial is false for complete discovery
+      expect(sessionData.isPartial).toBe(false);
+      expect(sessionData.candidates.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('error handling', () => {
     it('returns 404 for non-existent session', async () => {
       const request = new Request('http://localhost/api/sessions/nonexistent');

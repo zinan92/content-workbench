@@ -1,0 +1,15 @@
+{
+  "featureId": "harden-douyin-host-validation",
+  "reviewedAt": "2026-03-28T10:16:00Z",
+  "commitId": "5a83619",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix adequately addresses the prior blocking deceptive-hostname bug by replacing substring host matching with a strict allowlist and adding adversarial tests for deceptive domains.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "link-intake-classification-and-routing",
+  "summary": "Review passed. Host validation is now strict-allowlist based and adversarial host tests confirm deceptive domains are rejected."
+}

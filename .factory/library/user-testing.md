@@ -62,3 +62,11 @@ Validation surfaces, tool choices, setup notes, and concurrency guidance.
 - Validate behavior from the contract, not internal implementation structure.
 - When checking studio persistence, always test at least one reload or revisit to distinguish saved state from in-memory client state.
 - When checking prep gating, confirm non-ready items do not successfully enter studio.
+## Flow Validator Guidance: agent-browser
+
+- Use session ids prefixed with `db3f1bb25c2a__` and never use the default session.
+- Operate only against `http://127.0.0.1:3100` for this milestone.
+- Stay within the assigned assertion set; do not modify app code or global test fixtures.
+- Capture required evidence listed in the validation contract in each flow report.
+- Avoid cross-session interference by using independent browser sessions and not reusing form state from other validators.
+
