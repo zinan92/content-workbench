@@ -71,4 +71,31 @@ describe('classifyDouyinLink', () => {
       expect(result).toBe('unsupported');
     });
   });
+
+  describe('adversarial hostname cases (security)', () => {
+    it('rejects deceptive domain with douyin.com as subdomain prefix', () => {
+      const result = classifyDouyinLink('https://douyin.com.evil.com/user/MS4wLjABAAAAtest');
+      expect(result).toBe('unsupported');
+    });
+
+    it('rejects lookalike domain with douyin.com suffix', () => {
+      const result = classifyDouyinLink('https://notdouyin.com/video/1234567890123456789');
+      expect(result).toBe('unsupported');
+    });
+
+    it('rejects domain with douyin.com as part of longer name', () => {
+      const result = classifyDouyinLink('https://mydouyin.com.fake.site/user/ABC123/');
+      expect(result).toBe('unsupported');
+    });
+
+    it('rejects domain with douyin.com embedded in middle', () => {
+      const result = classifyDouyinLink('https://fake-douyin.com-phishing.net/video/123');
+      expect(result).toBe('unsupported');
+    });
+
+    it('rejects subdomain that looks like douyin but is not approved', () => {
+      const result = classifyDouyinLink('https://phishing.douyin.com.attacker.com/user/test');
+      expect(result).toBe('unsupported');
+    });
+  });
 });

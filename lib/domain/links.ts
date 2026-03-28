@@ -5,6 +5,16 @@
 import type { DouyinLinkType } from './types';
 
 /**
+ * Strict allowlist of approved Douyin hostnames
+ * Security: prevents deceptive domains like douyin.com.evil.com or notdouyin.com
+ */
+const APPROVED_DOUYIN_HOSTS = new Set([
+  'www.douyin.com',
+  'douyin.com',
+  'v.douyin.com',
+]);
+
+/**
  * Classify a Douyin link into creator-profile, single-video, or unsupported
  */
 export function classifyDouyinLink(input: string): DouyinLinkType {
@@ -26,9 +36,9 @@ export function classifyDouyinLink(input: string): DouyinLinkType {
     return 'unsupported';
   }
 
-  // Check if it's a Douyin domain
+  // Check if hostname is in the approved allowlist
   const hostname = url.hostname.toLowerCase();
-  if (!hostname.includes('douyin.com')) {
+  if (!APPROVED_DOUYIN_HOSTS.has(hostname)) {
     return 'unsupported';
   }
 
