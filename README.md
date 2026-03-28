@@ -43,6 +43,7 @@ This standalone tool helps content operators replicate Douyin videos to XiaoHong
 ### Prerequisites
 
 - Node.js 22 LTS (use `nvm use` if you have nvm installed)
+- The repo includes `.nvmrc` and `.node-version` files to pin the runtime
 
 ### Installation
 
@@ -52,11 +53,15 @@ npm install
 
 ### Development
 
+Start the development server:
+
 ```bash
 npm run dev
 ```
 
 The app will start on [http://localhost:3100](http://localhost:3100).
+
+By default, the app runs in **fixture mode** for stable development without external dependencies. See [Adapter Modes](#adapter-modes) below for configuration options.
 
 ### Available Scripts
 
@@ -65,7 +70,7 @@ The app will start on [http://localhost:3100](http://localhost:3100).
 - `npm run start` — Start production server
 - `npm run lint` — Run ESLint
 - `npm run typecheck` — Run TypeScript type checking
-- `npm test` — Run Vitest tests
+- `npm test` — Run Vitest tests (use `npm test -- --run` for CI mode)
 
 ## Project Structure
 
@@ -87,14 +92,72 @@ content-workbench/
 
 V1 uses **repo-local JSON files** under `data/workspaces/` for session, item, and platform-draft state. No database, no external queue. Prepared media artifacts are saved to stable local paths and referenced by the workspace store.
 
-## External Capabilities (Reference Only)
+### Runtime Data Location
 
-This repo does not modify the following external repositories but may integrate with them via clean adapter boundaries:
+- **Session/workspace state**: `data/workspaces/<sessionId>/session.json`
+- **Content items**: `data/workspaces/<sessionId>/items/<itemId>.json`
+- **Prepared artifacts** (in fixture mode): Referenced as `/data/artifacts/<itemId>/<file>` in item metadata
 
-- **MediaCrawler** — Douyin creator discovery
-- **douyin-downloader-1** — Video download and transcription
+All workspace data persists across app restarts and page refreshes.
 
-Default V1 validation uses stable local fixtures when live integration is brittle.
+## Adapter Modes
+
+The app uses two adapters with configurable modes:
+
+### Discovery Adapter (MediaCrawler boundary)
+
+Handles Douyin creator profile discovery and single-video resolution.
+
+**Configuration:**
+
+```bash
+# Use either the combined mode or specific discovery mode
+CONTENT_WORKBENCH_ADAPTER_MODE=fixtures          # Default (stable)
+CONTENT_WORKBENCH_DISCOVERY_MODE=fixtures        # Override combined mode
+# CONTENT_WORKBENCH_DISCOVERY_MODE=mediacrawler  # Not yet implemented
+```
+
+**Available modes:**
+- `fixtures` (default) — Deterministic fixture data for stable development/testing
+- `partial` — Simulates partial discovery results for testing error handling
+- `fail-on-resolution` — Simulates resolution failures for testing error paths
+
+### Preparation Adapter (douyin-downloader-1 boundary)
+
+Handles video download and transcription.
+
+**Configuration:**
+
+```bash
+# Use either the combined mode or specific prep mode
+CONTENT_WORKBENCH_ADAPTER_MODE=fixtures          # Default (stable)
+CONTENT_WORKBENCH_PREP_MODE=fixtures             # Override combined mode
+# CONTENT_WORKBENCH_PREP_MODE=douyin-downloader  # Not yet implemented
+```
+
+**Available modes:**
+- `fixtures` (default) — Deterministic fixture artifacts for stable development/testing
+- `mixed-outcomes` — Simulates both successful and failed preparations for testing retry logic
+
+### Why Fixture Mode?
+
+Fixture mode is the **default and recommended** mode for V1 because:
+
+1. **Stable validation** — No dependency on external crawler/downloader state, cookies, or login sessions
+2. **Fast iteration** — No waiting for real downloads or network requests
+3. **Deterministic testing** — Reproducible results across development and CI
+4. **Clean contracts** — Real adapter integration can be added later without changing the service layer
+
+Real `MediaCrawler` and `douyin-downloader-1` integration may be added in future versions once those adapter paths are proven stable.
+
+## External Capability References
+
+The following external repositories may be integrated via adapter boundaries in the future:
+
+- **MediaCrawler** — `/Users/wendy/work/content-co/MediaCrawler` (Douyin creator discovery)
+- **douyin-downloader-1** — `/Users/wendy/work/content-co/douyin-downloader-1` (Video download and transcription)
+
+These repos are **reference only** for V1. The app does not modify them.
 
 ## Development Workflow
 
@@ -103,6 +166,57 @@ Default V1 validation uses stable local fixtures when live integration is brittl
 3. Run typecheck and tests
 4. Verify browser flow with manual or agent-browser checks
 5. Commit logical changes with clear messages
+
+## Validation
+
+### Automated Tests
+
+Run the full test suite:
+
+```bash
+npm run test -- --run
+```
+
+Run specific test files:
+
+```bash
+npm test -- tests/domain/links.test.ts
+```
+
+Run with watch mode during development:
+
+```bash
+npm test
+```
+
+### Type Checking
+
+```bash
+npm run typecheck
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Build Validation
+
+Verify the production build succeeds:
+
+```bash
+npm run build
+```
+
+### Smoke Testing (Manual Browser Validation)
+
+See [SMOKE_TEST.md](./SMOKE_TEST.md) for the complete manual validation checklist covering:
+
+- Creator profile intake → candidate review → preparation → studio
+- Single-video intake → preparation → studio
+- Per-platform draft/checklist persistence
+- Error handling and retry flows
 
 ## Testing
 
