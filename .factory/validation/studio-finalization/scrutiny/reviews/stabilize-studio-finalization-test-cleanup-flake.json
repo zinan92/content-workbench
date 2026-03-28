@@ -1,0 +1,39 @@
+{
+  "featureId": "stabilize-studio-finalization-test-cleanup-flake",
+  "reviewedAt": "2026-03-29T00:30:00.000Z",
+  "commitId": "0f4c33d",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix addresses the temp-directory cleanup race by adding a 400ms delay in afterEach hooks for both test files, ensuring background prepareItems tasks (which use FixturePreparationAdapter with 2×100ms delays per item) complete before rm is called. Two per-test 300ms waits were consolidated into the afterEach delay, and one 300ms inline wait was added before a loadItems assertion that was reading mid-write. The approach is timing-based rather than deterministic (the fire-and-forget prepareItems promise in the route handler is not exposed for awaiting), but is pragmatic and sufficient for the fixture-backed adapter's known timing profile. All 23 test assertions across both files remain intact with no coverage reduction. The worker confirmed stability with two consecutive clean full-suite runs.",
+    "issues": [
+      {
+        "file": "tests/api/session-prepare.route.test.ts",
+        "line": 28,
+        "severity": "non_blocking",
+        "description": "The 400ms afterEach delay is a timing-based workaround rather than a deterministic completion signal. If FixturePreparationAdapter delays change or tests run on a heavily loaded CI environment, the race could reappear. A more robust long-term approach would be to expose the background prepareItems promise from the route handler (e.g., via a test-only hook or module-level tracker) so tests can await actual completion. However, this would require production code changes and is out of scope for this stabilization fix."
+      },
+      {
+        "file": "tests/api/workflow-gating.test.ts",
+        "line": 32,
+        "severity": "non_blocking",
+        "description": "Same timing-based delay pattern as session-prepare. Only 4 of 17 tests in this file call preparePost (the VAL-CROSS-001 and VAL-CROSS-004 tests that trigger background preparation), but the 400ms delay applies to all 17 tests. The overhead is negligible (~7s added to the full suite) and the uniform approach is simpler than conditional delays."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md already documents the known test stability issue with these two files ('Known Test Stability Notes' section), which shows good shared-state hygiene. Now that the fix is merged, the note could be updated to reflect the resolution and the timing-based mitigation approach, so future workers modifying FixturePreparationAdapter delays know to check afterEach timing in these test files.",
+      "evidence": "AGENTS.md final section 'Known Test Stability Notes' describes the flake. Commit 0f4c33d resolves it but AGENTS.md was not updated to reflect the resolution or the timing coupling between adapter delays and test cleanup delays."
+    },
+    {
+      "area": "conventions",
+      "observation": "The prepare route handler (app/api/sessions/[sessionId]/prepare/route.ts:42) uses fire-and-forget for prepareItems with .catch() error swallowing. This pattern makes background work untrackable in tests. There's no convention documented about how to handle fire-and-forget async work in route handlers for testability.",
+      "evidence": "app/api/sessions/[sessionId]/prepare/route.ts line 42: 'prepareItems(sessionId, session.selectedIds).catch(error => { console.error(...) });' — the returned promise is discarded, forcing tests to use timing-based delays."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass. The fix correctly stabilizes the intermittent temp-directory cleanup race by adding timing-based delays in afterEach hooks. The approach is pragmatic for V1's fixture-backed adapters with known 200ms total delay per item. All 23 test assertions remain intact with no coverage reduction. Two non-blocking issues noted: (1) the timing-based approach has an implicit coupling to adapter delay values, and (2) the uniform 400ms delay applies to all tests including those that don't trigger background preparation, adding minor but acceptable overhead. The worker followed the skill procedure correctly, ran verification twice, and the fix is well-scoped."
+}

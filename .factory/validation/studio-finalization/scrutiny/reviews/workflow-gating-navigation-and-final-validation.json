@@ -1,0 +1,56 @@
+{
+  "featureId": "workflow-gating-navigation-and-final-validation",
+  "reviewedAt": "2026-03-29T00:30:00.000Z",
+  "commitId": "800365a",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature adds a single new test file (tests/api/workflow-gating.test.ts, 645 lines) that provides comprehensive API-level verification of all five VAL-CROSS assertions. The tests exercise the intake, session, item, and prepare route handlers directly, validating creator-flow ordering (VAL-CROSS-001), studio access gating by prepStatus (VAL-CROSS-002), failed-item isolation (VAL-CROSS-003), single-video flow routing (VAL-CROSS-004), and state persistence across reloads (VAL-CROSS-005). No production code was changed — the commit validates existing behavior rather than implementing new behavior. The test file follows the project's existing test conventions (vitest, temp directory isolation, direct route handler invocation). Browser verification was performed via agent-browser and confirmed all five flows work end-to-end. One minor non-blocking observation: the feature's description says 'wire the end-to-end browser workflow' but the actual implementation is purely test coverage — there were no production code changes. This is acceptable because the underlying route handlers and UI pages already implemented the required gating logic in prior features; this feature serves as the cross-cutting validation layer.",
+    "issues": [
+      {
+        "file": "tests/api/workflow-gating.test.ts",
+        "line": 183,
+        "severity": "non_blocking",
+        "description": "The test 'transitions to preparation only after explicit prepare action' sets workflowPhase to 'selection' before calling the prepare endpoint. However, the prepare route handler (app/api/sessions/[sessionId]/prepare/route.ts) unconditionally sets workflowPhase to 'preparation' regardless of the incoming phase. The test verifies the transition happens, but doesn't verify that prepare is rejected if called from an inappropriate phase (e.g., 'discovery' before selection). This is a gap in gating enforcement — the API allows preparation to be triggered from any phase, not just after explicit selection."
+      },
+      {
+        "file": "tests/api/workflow-gating.test.ts",
+        "line": 131,
+        "severity": "non_blocking",
+        "description": "The 'does not initiate preparation before explicit selection' test verifies that candidates remain 'pending' when loaded without calling prepare. However, it tests state at the API response level, not that the UI prevents early navigation. The actual gating is in the client-side redirect logic (session page redirects single-video to preparation, and shows candidate table for creator-profile). A determined user could still call POST /prepare before proper selection in the browser. This is acceptable for V1 since the UI flow enforces the order, but the API itself doesn't enforce phase-based gating."
+      },
+      {
+        "file": "tests/api/workflow-gating.test.ts",
+        "line": 27,
+        "severity": "non_blocking",
+        "description": "The afterEach cleanup uses rm(testDataDir, { recursive: true, force: true }) which is the same pattern that has known intermittent ENOTEMPTY/ENOENT flakiness noted in AGENTS.md. The handoff acknowledges this as a pre-existing issue. A dedicated stabilization feature (0f4c33d) was subsequently committed to address this, so this is informational only."
+      },
+      {
+        "file": "tests/api/workflow-gating.test.ts",
+        "line": 428,
+        "severity": "non_blocking",
+        "description": "The VAL-CROSS-004 test 'routes single-video intake to session page which should redirect to preparation' verifies that the session's workflowPhase is 'preparation' after intake. However, the nextRoute returned by intake is '/sessions/:id' (same as creator flow), and the actual redirect to '/sessions/:id/preparation' happens client-side in the session page component. The test name says 'should redirect to preparation' but only verifies the server-side phase, not the client-side redirect. The browser verification covers this gap adequately."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The prepare route handler (app/api/sessions/[sessionId]/prepare/route.ts) does not enforce workflow phase preconditions — it allows preparation to be triggered from any phase as long as selectedIds is non-empty. AGENTS.md says 'Do not collapse discovery and preparation into one step' but the API doesn't enforce this ordering. The test validates the happy path but doesn't assert that the API rejects out-of-order calls. This gap could be documented in AGENTS.md as an accepted V1 limitation or addressed with server-side phase validation.",
+      "evidence": "app/api/sessions/[sessionId]/prepare/route.ts lines 25-36 — no check on session.workflowPhase before allowing preparation. The endpoint only validates session existence and non-empty selectedIds."
+    },
+    {
+      "area": "skills",
+      "observation": "The worker followed the fullstack-web-worker skill procedure: read feature + mission docs, identified fulfills assertions, wrote tests (TDD step), ran validators, used agent-browser for manual verification, and invoked verification-before-completion. The handoff's skillFeedback.followedProcedure is true with no deviations. One suggested skill improvement from the worker ('check for pre-existing test coverage before writing new tests') is reasonable but minor.",
+      "evidence": "Transcript skeleton shows skill invocations for mission-worker-base, fullstack-web-worker, and agent-browser. Handoff skillFeedback confirms procedure adherence."
+    },
+    {
+      "area": "conventions",
+      "observation": "AGENTS.md already documents the known test cleanup flakiness for both session-prepare.route.test.ts and workflow-gating.test.ts, which is good. The stabilization commit (0f4c33d) addresses this. No new documentation gap here.",
+      "evidence": "AGENTS.md 'Known Test Stability Notes' section mentions both files. Commit 0f4c33d fixes cleanup."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The feature adds 645 lines of well-structured test coverage across 17 test cases validating all five VAL-CROSS assertions. No production code was changed — the tests verify that existing route handlers and UI components correctly implement workflow gating, studio access restrictions, flow ordering, failure isolation, and state persistence. Browser verification confirmed end-to-end flows. Non-blocking issues include: (1) the API doesn't enforce workflow phase ordering server-side (UI handles it client-side), (2) single-video redirect is client-side but the test only checks server-side phase, and (3) the test cleanup has the same known temp-directory flakiness that a subsequent commit addresses. All issues are non-blocking for V1 scope."
+}

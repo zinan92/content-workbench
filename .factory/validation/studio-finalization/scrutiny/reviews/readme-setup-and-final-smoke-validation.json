@@ -1,0 +1,55 @@
+{
+  "featureId": "readme-setup-and-final-smoke-validation",
+  "reviewedAt": "2026-03-29T00:45:00.000Z",
+  "commitId": "bbfd1c5",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature updates README.md with comprehensive setup, adapter mode documentation, runtime data location, and validation commands, and creates a thorough SMOKE_TEST.md covering both creator and single-video flows. The documentation is well-structured, covers all required expected behaviors, and the worker ran all four validation commands (test, build, typecheck, lint) successfully. Two non-blocking inaccuracies were found.",
+    "issues": [
+      {
+        "file": "README.md",
+        "line": 97,
+        "severity": "non_blocking",
+        "description": "README states session state is at 'data/workspaces/<sessionId>/session.json' but the actual file is 'workspace.json' (confirmed in lib/utils/paths.ts:32 and actual data on disk). Should read 'data/workspaces/<sessionId>/workspace.json'."
+      },
+      {
+        "file": "README.md",
+        "line": 158,
+        "severity": "non_blocking",
+        "description": "The 'External Capability References' section includes hardcoded absolute paths ('/Users/wendy/work/content-co/MediaCrawler' and '/Users/wendy/work/content-co/douyin-downloader-1'). These are machine-specific paths that would be meaningless to other developers. The environment.md file already documents these via env vars (MEDIACRAWLER_ROOT, DOUYIN_DOWNLOADER_ROOT). README should reference the env var pattern or use a generic placeholder instead."
+      },
+      {
+        "file": "SMOKE_TEST.md",
+        "line": 145,
+        "severity": "non_blocking",
+        "description": "The FAIL_ME instruction says 'Submit a creator profile link with FAIL_ME in the URL' but FAIL_ME is checked against the sourceUrl of individual items inside the MixedOutcomesPreparationAdapter (preparation-adapter.ts:88), not against the intake URL. The intake URL is a creator profile link that goes through discovery; the sourceUrl of each discovered item is different. This instruction is misleading — the tester would need items whose sourceUrl contains FAIL_ME, which depends on the fixture data, not the submitted intake URL."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The README documents the persistence path as 'data/workspaces/<sessionId>/session.json' but the canonical file is 'workspace.json'. This naming discrepancy between documentation and code could confuse future workers inspecting the data directory.",
+      "evidence": "README.md line 97 says 'session.json'; lib/utils/paths.ts:32 returns 'workspace.json'; actual files on disk are all workspace.json (e.g., data/workspaces/session_bbc21f45b612b957e1fced2c/workspace.json)"
+    },
+    {
+      "area": "conventions",
+      "observation": "README includes hardcoded absolute paths to external repos which are machine-specific (/Users/wendy/work/content-co/MediaCrawler). The environment.md already documents these via env vars. The README should align with that pattern.",
+      "evidence": "README.md lines 157-158 vs .factory/library/environment.md which uses MEDIACRAWLER_ROOT and DOUYIN_DOWNLOADER_ROOT env vars"
+    },
+    {
+      "area": "skills",
+      "observation": "The fullstack-web-worker skill requires invoking test-driven-development before implementation code, but the worker correctly noted this feature is documentation-only and no new tests were needed. The skill feedback suggests scoping TDD requirement to code-changing features only. This is a reasonable observation — the skill could clarify that TDD applies to behavioral code changes, not pure documentation updates.",
+      "evidence": "Handoff skillFeedback.suggestedChanges[0]: 'For final documentation features, the fullstack-web-worker skill's requirement to invoke test-driven-development before implementation could be explicitly scoped to code changes only'"
+    },
+    {
+      "area": "conventions",
+      "observation": "The environment.md documents the prep adapter mode as 'fixtures|downloader' but the actual code and README use 'fixtures|mixed-outcomes|douyin-downloader'. The environment.md is slightly out of sync with the implemented adapter modes.",
+      "evidence": "environment.md says 'CONTENT_WORKBENCH_PREP_MODE=fixtures|downloader'; actual code in preparation-adapter.ts:137-141 checks for 'douyin-downloader' and 'mixed-outcomes'; README documents 'fixtures' and 'mixed-outcomes'"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The feature successfully delivers comprehensive README and SMOKE_TEST documentation covering setup, adapter modes, runtime data, and validated browser journeys. All four validation commands (test, build, typecheck, lint) passed. Three non-blocking issues found: (1) README incorrectly names the workspace file as 'session.json' instead of 'workspace.json', (2) README includes hardcoded machine-specific paths for external repos, (3) SMOKE_TEST.md has a slightly misleading FAIL_ME instruction. None of these block the feature's core purpose of documenting the V1 behavior accurately, but they should be corrected in a follow-up."
+}
