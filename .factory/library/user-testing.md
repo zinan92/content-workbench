@@ -64,9 +64,41 @@ Validation surfaces, tool choices, setup notes, and concurrency guidance.
 - When checking prep gating, confirm non-ready items do not successfully enter studio.
 ## Flow Validator Guidance: agent-browser
 
-- Use session ids prefixed with `db3f1bb25c2a__` and never use the default session.
+- Use session ids prefixed with `ff79a82d9962__` and never use the default session.
 - Operate only against `http://127.0.0.1:3100` for this milestone.
 - Stay within the assigned assertion set; do not modify app code or global test fixtures.
 - Capture required evidence listed in the validation contract in each flow report.
 - Avoid cross-session interference by using independent browser sessions and not reusing form state from other validators.
+
+### Existing Test Data for Studio Assertions
+
+- **Creator profile session with 2 ready items**: `session_f1c753b3df009de49fb183d4`
+  - Ready item 1: `item_6166501d398916df651d52ff` (title: "旅行Vlog | 周末短途游", score: 93)
+  - Ready item 2: `item_719556b18b3b6d3ed7b3ce06` (title: "新品开箱｜这款相机太惊艳了！", score: 92)
+  - Studio URL: `http://127.0.0.1:3100/items/item_6166501d398916df651d52ff`
+  - Both have empty platform drafts and checklists (fresh for editing tests)
+  - All 5 V1 platform tabs are initialized: xiaohongshu, bilibili, video-channel, wechat-oa, x
+  - `otherReadyItems` response will include the other ready item for next-video navigation
+
+### Creating New Sessions via Intake
+
+- POST `http://127.0.0.1:3100/api/intake` with `{"link": "..."}` 
+- Creator profile links: `https://www.douyin.com/user/MS4wLjABAAAA<anything>`
+- Single video links: `https://www.douyin.com/video/<numeric-id>`
+- Fixture adapter returns 8 deterministic candidate items for creator profiles
+- Preparation (fixture mode) transitions items: pending → downloading → transcribing → ready within ~200ms
+- Mixed-outcomes mode (set via `CONTENT_WORKBENCH_ADAPTER_MODE=mixed-outcomes`): URLs containing "FAIL_ME" will fail preparation
+
+### App Route Structure
+
+- Intake: `/` (root page)
+- Candidate review: `/sessions/{sessionId}` (creator-profile sessions)
+- Single-video session auto-redirects to preparation: `/sessions/{sessionId}/preparation`
+- Preparation: `/sessions/{sessionId}/preparation`
+- Studio: `/items/{itemId}`
+
+### Non-ready Item Studio Gating
+
+- GET `/api/items/{itemId}` returns 403 for non-ready items with `{ error: "Item is not ready for studio access" }`
+- Studio page shows red error box with "Go Back" button for gated items
 
