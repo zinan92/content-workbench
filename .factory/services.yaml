@@ -1,0 +1,14 @@
+commands:
+  install: npm install
+  typecheck: npm run typecheck
+  lint: npm run lint
+  test: npm run test -- --run --maxWorkers=5
+  build: npm run build
+
+services:
+  web:
+    start: PORT=3100 npm run dev -- --hostname 127.0.0.1 --port 3100
+    stop: pids=$(lsof -ti tcp:3100); if [ -n "$pids" ]; then kill $pids; fi
+    healthcheck: curl -sf http://127.0.0.1:3100
+    port: 3100
+    depends_on: []
