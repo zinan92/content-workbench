@@ -3,9 +3,47 @@
   "baseUrl": "http://127.0.0.1:3100",
   "assertions": [
     {
+      "id": "VAL-INTAKE-006",
+      "status": "pass",
+      "summary": "Supported-looking Douyin video input stayed on intake after resolution failure, preserved the typed link, and showed a recoverable resolution error distinct from unsupported-scope validation.",
+      "steps": [
+        {
+          "action": "Open the intake page on the fail-on-resolution server",
+          "expected": "Intake form is available",
+          "observed": "Intake form loaded at /."
+        },
+        {
+          "action": "Submit supported-looking Douyin single-video link https://www.douyin.com/video/7590000000000000000",
+          "expected": "The app handles a resolution failure without navigating away from intake",
+          "observed": "The page remained at / and displayed a resolution failure state."
+        },
+        {
+          "action": "Inspect the intake form after failure",
+          "expected": "The entered link remains in the field and the failure copy is recoverable and distinct from unsupported-scope validation",
+          "observed": "The textbox still contained the submitted link and the UI showed 'Resolution Failed' with message 'Failed to resolve creator profile. The profile may be private, deleted, or temporarily unavailable.' plus retry guidance."
+        },
+        {
+          "action": "Inspect the handled intake response",
+          "expected": "POST /api/intake returns a handled failure for a supported Douyin link",
+          "observed": "POST /api/intake returned 422 with JSON {success:false,errorType:'resolution-failure',inputType:'single-video',preservedLink:'https://www.douyin.com/video/7590000000000000000'}."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/recovery-and-partial/VAL-INTAKE-006-intake-page.png",
+          "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/recovery-and-partial/VAL-INTAKE-006-resolution-error.png"
+        ],
+        "consoleErrors": "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+        "network": [
+          "Browser console showed POST /api/intake -> 422 during submit",
+          "Browser-context fetch POST /api/intake -> 422 with errorType 'resolution-failure' and preservedLink matching the submitted URL"
+        ]
+      }
+    },
+    {
       "id": "VAL-CANDIDATES-009",
-      "status": "fail",
-      "summary": "Partial creator discovery rendered a usable 3-row candidate review table, but the required partial-results message/banner was absent and the session API response returned isPartial: false.",
+      "status": "pass",
+      "summary": "Partial creator discovery rendered a usable 3-row candidate review table and displayed a clear partial-results message.",
       "steps": [
         {
           "action": "Open the intake page on the partial-results server",
@@ -15,17 +53,17 @@
         {
           "action": "Submit supported creator link https://www.douyin.com/user/MS4wLjABAAAApartial",
           "expected": "Navigate to candidate review for a partial discovery session",
-          "observed": "Navigated to /sessions/session_d580d47ec11b37c31c364b8b candidate review."
+          "observed": "Navigated to /sessions/session_83dfee33176beadb09e88b79 candidate review."
         },
         {
           "action": "Inspect the candidate-review page",
           "expected": "Partial-results message is visible and fetched rows render in a usable table",
-          "observed": "A usable table with 3 candidate rows rendered, but no visible 'Partial Results' banner/message was present."
+          "observed": "The page showed a 'Partial Results' message with explanatory copy and rendered a usable table with 3 candidate rows."
         },
         {
           "action": "Inspect session/network response",
           "expected": "GET /api/sessions/{id} indicates partial candidate payload",
-          "observed": "GET /api/sessions/session_d580d47ec11b37c31c364b8b returned 3 candidates with isPartial: false."
+          "observed": "GET /api/sessions/session_83dfee33176beadb09e88b79 returned 3 candidates and isPartial: true."
         }
       ],
       "evidence": {
@@ -36,11 +74,11 @@
         ],
         "consoleErrors": "none",
         "network": [
-          "GET /api/sessions/session_d580d47ec11b37c31c364b8b observed in browser request log",
-          "curl http://127.0.0.1:3100/api/sessions/session_d580d47ec11b37c31c364b8b -> { candidates: 3, isPartial: false }"
+          "GET /api/sessions/session_83dfee33176beadb09e88b79 observed in browser request log",
+          "curl http://127.0.0.1:3100/api/sessions/session_83dfee33176beadb09e88b79 -> { candidates: 3, isPartial: true }"
         ]
       }
     }
   ],
-  "summary": "Validated VAL-CANDIDATES-009 against the partial-results server: fail. The review table remained usable with 3 rows, but the required partial-results message was missing and the API did not mark the session as partial."
+  "summary": "Validated VAL-INTAKE-006 and VAL-CANDIDATES-009 in mode-specific runs: both passed. Recoverable resolution failures preserve input and stay on intake; partial discovery shows a partial-results banner plus a usable reduced candidate table."
 }

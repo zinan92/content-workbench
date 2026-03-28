@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { loadSession, saveSession } from '@/lib/services/workspace-store';
+import { prepareItems } from '@/lib/services/prepare-service';
 
 export async function POST(
   request: Request,
@@ -37,7 +38,13 @@ export async function POST(
     session.updatedAt = new Date().toISOString();
     await saveSession(session);
 
-    // Return prepared item IDs (scoped to selection only)
+    // Start preparation for selected items (async, fire and forget)
+    // The preparation runs in background and updates item statuses
+    prepareItems(sessionId, session.selectedIds).catch(error => {
+      console.error('Preparation background error:', error);
+    });
+
+    // Return immediately with prepared item IDs (scoped to selection only)
     return NextResponse.json({
       preparedIds: session.selectedIds,
       session,

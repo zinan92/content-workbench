@@ -102,6 +102,9 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     const data = await response.json();
     expect(data.preparedIds).toEqual([item1.id, item3.id]);
     expect(data.preparedIds).not.toContain(item2.id);
+
+    // Wait for background preparation to complete before test cleanup
+    await new Promise(resolve => setTimeout(resolve, 300));
   });
 
   it('should return 400 when no items are selected', async () => {
@@ -228,6 +231,9 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     const response1 = await POST(request1, { params: Promise.resolve({ sessionId: session.id }) });
     expect(response1.status).toBe(200);
 
+    // Wait for background preparation to complete
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     // Second prepare (idempotent)
     const request2 = new Request(`http://localhost:3100/api/sessions/${session.id}/prepare`, {
       method: 'POST',
@@ -237,5 +243,8 @@ describe('POST /api/sessions/[sessionId]/prepare', () => {
     
     const data2 = await response2.json();
     expect(data2.preparedIds).toEqual([item1.id]);
+
+    // Wait for second background preparation to complete before cleanup
+    await new Promise(resolve => setTimeout(resolve, 300));
   });
 });

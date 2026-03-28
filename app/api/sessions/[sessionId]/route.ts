@@ -39,17 +39,23 @@ export async function GET(
       }
     }
 
-    // Return session with discovered candidates for creator-profile sessions
+    // Return session with discovered candidates and items
+    // - candidates: for candidate review phase
+    // - items: for preparation phase (includes status updates)
     if (session.inputType === 'creator-profile') {
       return NextResponse.json({
         session,
         candidates: items,
+        items: items, // Also include for preparation page
         isPartial: session.isPartialDiscovery || false,
       });
     }
 
-    // For single-video sessions, return session only (no candidate review)
-    return NextResponse.json({ session });
+    // For single-video sessions, return session with items for preparation
+    return NextResponse.json({ 
+      session,
+      items: items,
+    });
 
   } catch (error) {
     console.error('Session load error:', error);

@@ -1,65 +1,217 @@
 {
-  "flowId": "intake-normal",
-  "baseUrl": "http://127.0.0.1:3100",
+  "groupId": "intake-normal",
+  "testedAt": "2026-03-28T11:31:50.755299+00:00",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "missionDir": "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064",
+    "repoRoot": "/Users/wendy/work/content-co/content-workbench",
+    "browserSession": "db3f1bb25c2a__intake-normal",
+    "mode": "default fixtures"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
   "assertions": [
     {
       "id": "VAL-INTAKE-001",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      "title": "Creator-profile intake classifies the link and routes to candidate review",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open intake page and enter a supported creator-profile link",
+          "expected": "Intake form accepts the link",
+          "observed": "Entered https://www.douyin.com/user/MS4wLjABAAAAnormal into the Douyin Link field"
+        },
+        {
+          "action": "Submit intake",
+          "expected": "POST /api/intake succeeds and app routes away from intake",
+          "observed": "POST /api/intake was issued and browser navigated to /sessions/session_dbd78a635c371fcfb3d1c3cb"
+        },
+        {
+          "action": "Inspect destination",
+          "expected": "Candidate review is the first destination and intake success state is visible",
+          "observed": "Candidate review table with discovered rows rendered as the first post-intake surface"
+        }
       ],
-      "notes": "Submitting https://www.douyin.com/user/MS4wLjABAAAAnormal stayed in scope, created session session_f8baea8a46c5d37a7d51fdc2, and routed to /sessions/session_f8baea8a46c5d37a7d51fdc2 candidate review. Network log captured POST /api/intake followed by GET /api/sessions/session_f8baea8a46c5d37a7d51fdc2. No browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
+          "intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/intake -> navigation to /sessions/session_dbd78a635c371fcfb3d1c3cb; subsequent GET /api/sessions/session_dbd78a635c371fcfb3d1c3cb requests observed"
+      },
+      "issues": null
     },
     {
       "id": "VAL-INTAKE-003",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png"
+      "title": "Unsupported input stays on intake with actionable error feedback",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Enter malformed input notaurl on intake",
+          "expected": "Form accepts the typed value for submission",
+          "observed": "Input accepted notaurl"
+        },
+        {
+          "action": "Submit unsupported input",
+          "expected": "Stay on intake with preserved input and actionable V1-scope error",
+          "observed": "Browser remained on /, preserved notaurl in the input, and displayed 'This link is not supported. Please provide a Douyin creator profile or single video link.'"
+        },
+        {
+          "action": "Check error handling side effects",
+          "expected": "Handled rejection without crash",
+          "observed": "POST /api/intake returned a handled 400 error and no uncaught page errors appeared"
+        }
       ],
-      "notes": "Submitting malformed input notaurl kept the browser on /, preserved the typed value, and showed the actionable message 'This link is not supported. Please provide a Douyin creator profile or single video link.' Network log showed POST /api/intake, and no browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png"
+        ],
+        "consoleErrors": "none; console logged one expected 400 Bad Request for unsupported input",
+        "network": "POST /api/intake -> 400 handled rejection on unsupported link"
+      },
+      "issues": null
     },
     {
       "id": "VAL-INTAKE-004",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      "title": "Creator-profile intake does not start preparation before selection",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Submit supported creator-profile intake",
+          "expected": "App lands on candidate review before any preparation",
+          "observed": "First destination was /sessions/session_dbd78a635c371fcfb3d1c3cb with candidate review UI"
+        },
+        {
+          "action": "Inspect candidate review page and network activity",
+          "expected": "No prepare request or preparation statuses before manual selection",
+          "observed": "No prepare request appeared in network logs and page inspection reported hasPrepareText=false"
+        }
       ],
-      "notes": "After creator-profile intake, the first destination was candidate review. DOM inspection found no prepare button and no pending/downloading/transcribing/ready/failed prep statuses, and captured network entries showed only intake/session reads with no prepare request. No browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-INTAKE-001-candidate-review.png",
+          "intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Only intake and session-fetch requests observed; no POST prepare request after creator intake"
+      },
+      "issues": null
     },
     {
       "id": "VAL-INTAKE-005",
-      "status": "blocked",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png"
+      "title": "Operator can recover from an invalid submission without refreshing",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Submit invalid value notaurl",
+          "expected": "Error state remains on intake",
+          "observed": "Unsupported-link error displayed with preserved input on /"
+        },
+        {
+          "action": "Replace invalid value with a supported creator-profile link without refreshing",
+          "expected": "Retry should succeed from same page",
+          "observed": "Replaced value with https://www.douyin.com/user/MS4wLjABAAAAnormal and submitted from the same intake page"
+        },
+        {
+          "action": "Observe retry outcome",
+          "expected": "App follows the normal creator success path",
+          "observed": "Browser navigated to /sessions/session_fe909c5c923fbb5169560b44 and rendered candidate review without reload"
+        }
       ],
-      "notes": "Could not complete invalid-to-valid retry validation because the dev server on http://127.0.0.1:3100 stopped responding before the retry sequence. A follow-up open and curl -I both returned connection refused, so recovery could not be re-tested without restarting shared infrastructure, which is out of scope."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-INTAKE-003-invalid-error.png",
+          "intake-discovery/intake-normal/VAL-INTAKE-005-recovery-success.png"
+        ],
+        "consoleErrors": "none",
+        "network": "Sequential POST /api/intake calls observed: handled 400 for invalid input followed by successful creator-profile intake and session fetches"
+      },
+      "issues": null
     },
     {
       "id": "VAL-CANDIDATES-001",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      "title": "Creator discovery renders candidate review before any asset prep begins",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Complete creator-profile intake",
+          "expected": "First post-intake screen is candidate review",
+          "observed": "Candidate review route /sessions/session_dbd78a635c371fcfb3d1c3cb opened first"
+        },
+        {
+          "action": "Inspect review surface contents",
+          "expected": "Discovered candidate rows are shown before prep begins",
+          "observed": "Candidate table rendered 8 discovered rows"
+        },
+        {
+          "action": "Inspect network and UI for prep activity",
+          "expected": "No asset prep begins automatically",
+          "observed": "No POST prepare request and no prep lifecycle labels appeared"
+        }
       ],
-      "notes": "The creator-profile session rendered a populated candidate review table with 8 discovered videos as the first post-intake screen. Network logs showed GET /api/sessions/session_f8baea8a46c5d37a7d51fdc2, while DOM inspection found no prepare button or prep status text prior to manual action. No browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_dbd78a635c371fcfb3d1c3cb returned discovered rows; no POST prepare request observed"
+      },
+      "issues": null
     },
     {
       "id": "VAL-CANDIDATES-002",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      "title": "Candidate rows expose the required review columns",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open candidate review for creator session",
+          "expected": "Table structure is visible",
+          "observed": "Candidate table and headers rendered"
+        },
+        {
+          "action": "Inspect header and row content",
+          "expected": "Rows expose title, publish date, duration, likes, comments, shares, score, recommended flag, and selection control",
+          "observed": "DOM inspection confirmed all required headers were present and sample rows showed matching values plus row checkboxes"
+        }
       ],
-      "notes": "Table header and rows visibly included title, publish date, duration, likes, comments, shares, score, recommended flag, and row selection checkboxes. Observed row values were populated for all 8 fixture rows; no browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": "n/a"
+      },
+      "issues": null
     },
     {
       "id": "VAL-CANDIDATES-005",
-      "status": "passed",
-      "evidence": [
-        "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064/evidence/intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+      "title": "Simple score and recommendation state are visible without any AI dependency",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect candidate review rows",
+          "expected": "Simple score and recommended flag are visible in the UI",
+          "observed": "Rows displayed numeric scores including 93, 92, 89 and recommended states such as ✓ Yes and —"
+        },
+        {
+          "action": "Inspect route/session data behavior",
+          "expected": "Review works without AI calls",
+          "observed": "Only local session API requests were recorded; no AI-related network dependency was observed while score/recommended fields were present in rendered data"
+        }
       ],
-      "notes": "Candidate review visibly showed deterministic numeric scores (93..76) and a recommended flag of '✓ Yes' for rows without any AI workflow. Network requests captured only local session APIs, and DOM inspection confirmed score/recommended data present in rendered route data. No browser errors were reported."
+      "evidence": {
+        "screenshots": [
+          "intake-discovery/intake-normal/VAL-CANDIDATES-001-table.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_fe909c5c923fbb5169560b44 returned candidate data; no AI or external recommendation request observed"
+      },
+      "issues": null
     }
   ],
-  "summary": "Validated 7 assigned assertions for the intake-normal flow: 6 passed and 1 was blocked because the local dev server stopped responding before the retry/recovery assertion could be completed. Evidence was captured for the invalid intake state and creator-profile candidate review/table flow."
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 7 assertions in the intake normal flow: 7 passed, 0 failed, 0 blocked. Creator-profile intake routed to candidate review without starting preparation, invalid input stayed recoverable on intake, retry from the same page succeeded, and candidate review exposed the required columns plus deterministic score/recommended fields without any AI dependency."
 }

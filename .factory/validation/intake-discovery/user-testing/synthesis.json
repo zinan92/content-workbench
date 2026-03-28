@@ -1,0 +1,22 @@
+{
+  "milestone": "intake-discovery",
+  "round": 1,
+  "status": "pass",
+  "resultsSummary": {
+    "totalAssertions": 13,
+    "passed": 13,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 0
+  },
+  "flowReports": [
+    ".factory/validation/intake-discovery/user-testing/flows/candidate-interactions.json",
+    ".factory/validation/intake-discovery/user-testing/flows/intake-normal.json",
+    ".factory/validation/intake-discovery/user-testing/flows/recovery-and-partial.json"
+  ],
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [],
+  "manualSynthesisNote": "The built-in user-testing-validator repeatedly failed to execute flow validation, so assertion validation was executed directly via user-testing-flow-validator subagents against the live local browser surface and then synthesized by the orchestrator."
+}
