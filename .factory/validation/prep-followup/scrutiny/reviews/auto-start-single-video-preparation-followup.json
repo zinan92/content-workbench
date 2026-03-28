@@ -1,0 +1,33 @@
+{
+  "featureId": "auto-start-single-video-preparation-followup",
+  "reviewedAt": "2026-03-29T00:15:00.000Z",
+  "commitId": "f6f52c2452d925026a1ab402a7631912768b6c4f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The implementation correctly adds auto-start preparation for single-video intake by calling prepareItems() immediately after hydrateSingleVideoSession() in the session GET route. The change is minimal (7 lines in route, 42 lines in tests), well-placed, and follows existing patterns. The auto-start call is guarded by the `items.length === 0` check, ensuring it only fires on initial hydration and not on subsequent page refreshes — making it idempotent. The fire-and-forget pattern with `.catch()` error handling is identical to the existing manual prepare route. The `prepareSingleItem` function within `prepareItems` does reset status to `pending` before progressing, which is safe since this code path is only entered once per session. No new endpoints, no auth changes, no architectural concerns. The test verifies that preparation progresses beyond 'pending' within 300ms (matching FixturePreparationAdapter's 2×100ms delays), and the 400ms afterEach delay prevents cleanup races — consistent with the stabilization pattern established in session-prepare tests.",
+    "issues": [
+      {
+        "file": "app/api/sessions/[sessionId]/route.ts",
+        "line": 53,
+        "severity": "non_blocking",
+        "description": "The prepareItems call lacks an idempotency guard at the prepare-service level — it relies entirely on the `items.length === 0` guard in the route. If a future code change removes that guard or adds another call site that triggers preparation for an already-preparing item, preparation would restart from 'pending', potentially overwriting in-progress state. A defensive check in prepareSingleItem (e.g., skip if status is already 'downloading', 'transcribing', or 'ready') would be more robust. However, this is an existing architectural pattern shared with POST /prepare, not a regression introduced by this feature."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The GET /api/sessions/[sessionId] route now has a side-effect (fire-and-forget prepareItems) for single-video sessions. This makes the GET handler non-idempotent in practice for the first call. The existing prepare route uses the same fire-and-forget pattern, but triggering preparation from a GET handler is architecturally different from triggering it from a POST handler. AGENTS.md does not document when fire-and-forget background work is acceptable from GET vs POST handlers.",
+      "evidence": "app/api/sessions/[sessionId]/route.ts:53 — prepareItems() called inside GET handler. Compare to app/api/sessions/[sessionId]/prepare/route.ts:43 which does the same from a POST handler. The GET handler already had side-effects (hydrateSingleVideoSession, discoverAndHydrateSession) so this extends an existing pattern."
+    },
+    {
+      "area": "conventions",
+      "observation": "The Known Test Stability Notes in AGENTS.md mention the 400ms afterEach delay pattern for session-prepare and workflow-gating tests. This feature adds the same pattern to single-video-intake tests, but AGENTS.md was not updated to mention this file as also using the timing-based cleanup pattern. If the pattern is considered worth documenting for two files, it should be documented for three.",
+      "evidence": "tests/api/single-video-intake.test.ts:28 — adds 400ms afterEach delay. AGENTS.md Known Test Stability Notes only mentions session-prepare.route.test.ts and workflow-gating.test.ts."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS. The implementation correctly auto-starts preparation for single-video sessions by adding a fire-and-forget prepareItems() call immediately after hydrateSingleVideoSession() in the session GET route. The change is minimal, idempotent (guarded by items.length === 0), and follows the existing fire-and-forget pattern used by POST /prepare. The new test properly verifies that preparation progresses beyond 'pending' without manual API intervention. One non-blocking observation: the GET handler now has preparation side-effects, extending the existing pattern of side-effectful GET calls in this route. All verifications (full test suite, typecheck, lint, browser flow) passed per the handoff."
+}

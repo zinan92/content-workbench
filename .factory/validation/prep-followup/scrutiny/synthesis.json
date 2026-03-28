@@ -1,0 +1,34 @@
+{
+  "milestone": "prep-followup",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "npm run test -- --run --maxWorkers=5", "exitCode": 0 },
+    "typecheck": { "passed": true, "command": "npm run typecheck", "exitCode": 0 },
+    "lint": { "passed": true, "command": "npm run lint", "exitCode": 0 }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add a note under Implementation Guidance that the session GET handler uses fire-and-forget side-effects (hydration, discovery, preparation) as an established pattern in this V1 codebase — future workers should be aware that GET /api/sessions/[sessionId] is not side-effect-free and should preserve idempotency guards when extending it.",
+      "evidence": "Feature auto-start-single-video-preparation-followup added prepareItems() as a fire-and-forget call inside the GET handler (app/api/sessions/[sessionId]/route.ts:53), extending the existing pattern where the same GET handler already calls hydrateSingleVideoSession() and discoverAndHydrateSession(). The review noted this is architecturally different from triggering preparation from a POST handler but is consistent with the existing codebase convention.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Update the Known Test Stability Notes to include tests/api/single-video-intake.test.ts alongside session-prepare.route.test.ts and workflow-gating.test.ts as files using the 400ms afterEach cleanup delay pattern.",
+      "evidence": "Feature auto-start-single-video-preparation-followup added a 400ms afterEach delay in tests/api/single-video-intake.test.ts:28, matching the same cleanup timing pattern documented for two other test files. AGENTS.md should mention all three files that use this pattern.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [],
+  "previousRound": null
+}
