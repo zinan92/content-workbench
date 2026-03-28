@@ -1,0 +1,17 @@
+{
+  "flowId": "single-video-autostart",
+  "assertions": {
+    "VAL-PREP-002": {
+      "status": "pass",
+      "reason": "Single-video intake auto-started preparation without manual POST /api/sessions/{sessionId}/prepare. After submitting the single-video link (https://www.douyin.com/video/7388888888888888888), the app redirected directly to /sessions/session_1ceb88b13a37ba0fe8929d85/preparation (skipping candidate review). The preparation page showed exactly 1 item ('Single Video Content - 73888888') with prepStatus 'ready', confirming auto-start through all lifecycle phases (pending → downloading → transcribing → ready). The GET /api/sessions/{sessionId} response confirmed inputType='single-video', workflowPhase='preparation', and the single item at prepStatus='ready' with artifacts populated.",
+      "evidence": [
+        "prep-followup/single-video-autostart/VAL-PREP-002-01-intake-page.png",
+        "prep-followup/single-video-autostart/VAL-PREP-002-02-filled-input.png",
+        "prep-followup/single-video-autostart/VAL-PREP-002-03-single-item-prep-page.png"
+      ]
+    }
+  },
+  "frictions": [],
+  "blockers": [],
+  "toolsUsed": ["agent-browser"]
+}
