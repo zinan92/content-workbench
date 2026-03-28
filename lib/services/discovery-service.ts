@@ -85,6 +85,66 @@ export async function discoverAndHydrateSession(
 }
 
 /**
+ * Hydrate a single-video session with one preparation item
+ * 
+ * This resolves the video metadata via the adapter, creates a single ContentItem,
+ * saves it to the workspace, and updates the session's candidateIds and selectedIds.
+ */
+export async function hydrateSingleVideoSession(
+  sessionId: SessionId
+): Promise<ContentItem> {
+  // Load the session
+  const session = await loadSession(sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  // Verify this is a single-video session
+  if (session.inputType !== 'single-video') {
+    throw new Error(`Single-video hydration is only supported for single-video sessions. Session ${sessionId} is ${session.inputType}.`);
+  }
+
+  // Resolve single video via adapter
+  const adapter = getDiscoveryAdapter();
+  const videoMetadata = await adapter.resolveSingleVideo(session.inputLink);
+
+  // Create ContentItem for the video
+  const now = new Date().toISOString();
+  const itemId = generateContentItemId();
+  const simpleScore = calculateSimpleScore(videoMetadata);
+  const recommended = isRecommended(videoMetadata);
+
+  const item: ContentItem = {
+    id: itemId,
+    sessionId,
+    source: videoMetadata,
+    simpleScore,
+    recommended,
+    prepStatus: 'pending',
+    platformDrafts: {
+      xiaohongshu: createEmptyPlatformDraft('xiaohongshu', now),
+      bilibili: createEmptyPlatformDraft('bilibili', now),
+      'video-channel': createEmptyPlatformDraft('video-channel', now),
+      'wechat-oa': createEmptyPlatformDraft('wechat-oa', now),
+      x: createEmptyPlatformDraft('x', now),
+    },
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // Save the item
+  await saveItem(item);
+
+  // Update session with the item ID in both candidateIds and selectedIds
+  session.candidateIds = [itemId];
+  session.selectedIds = [itemId];
+  session.updatedAt = now;
+  await saveSession(session);
+
+  return item;
+}
+
+/**
  * Create an empty platform draft
  */
 function createEmptyPlatformDraft(

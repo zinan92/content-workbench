@@ -34,6 +34,13 @@ export default function SessionPage() {
           throw new Error('Session not found');
         }
         const data = await response.json();
+        
+        // Single-video sessions should redirect directly to preparation
+        if (data.session?.inputType === 'single-video') {
+          router.push(`/sessions/${sessionId}/preparation`);
+          return;
+        }
+        
         setSessionData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load session');
@@ -43,7 +50,7 @@ export default function SessionPage() {
     }
 
     loadSession();
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   const handleSelectionChange = useCallback(async (selectedIds: string[]) => {
     if (!sessionData) return;
@@ -211,19 +218,7 @@ export default function SessionPage() {
           </div>
         )}
 
-        {session.inputType === 'single-video' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h2 className="text-lg font-medium text-green-900 mb-2">
-              Preparation Status (Coming Soon)
-            </h2>
-            <p className="text-green-800 text-sm">
-              This page will show preparation progress for your single video.
-            </p>
-            <p className="text-green-700 text-xs mt-3">
-              Expected next: Preparation service will track download/transcription status.
-            </p>
-          </div>
-        )}
+
       </div>
     </div>
   );

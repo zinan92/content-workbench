@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { loadSession, loadItems } from '@/lib/services/workspace-store';
-import { discoverAndHydrateSession } from '@/lib/services/discovery-service';
+import { discoverAndHydrateSession, hydrateSingleVideoSession } from '@/lib/services/discovery-service';
 
 export async function GET(
   request: Request,
@@ -35,6 +35,20 @@ export async function GET(
       } catch (error) {
         console.error('Discovery error:', error);
         // Return session without candidates on discovery failure
+        // This allows the UI to show a recoverable error state
+      }
+    }
+
+    // For single-video sessions in preparation phase, hydrate if not yet done
+    if (session.inputType === 'single-video' && items.length === 0) {
+      try {
+        const item = await hydrateSingleVideoSession(sessionId);
+        items = [item];
+        // Reload session to get updated candidateIds and selectedIds
+        session = await loadSession(sessionId) || session;
+      } catch (error) {
+        console.error('Single-video hydration error:', error);
+        // Return session without items on hydration failure
         // This allows the UI to show a recoverable error state
       }
     }

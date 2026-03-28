@@ -1,0 +1,182 @@
+{
+  "groupId": "creator-prep",
+  "testedAt": "2026-03-28T12:28:30+00:00",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "missionDir": "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064",
+    "repoRoot": "/Users/wendy/work/content-co/content-workbench",
+    "browserSession": "db3f1bb25c2a__candidate-prep-creator",
+    "mode": "default fixtures"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CANDIDATES-007",
+      "title": "Prepare Selected acts only on the current manual selection",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open candidate review from a creator-profile intake and manually select two rows",
+          "expected": "Only the chosen candidates are included in the pending prepare action",
+          "observed": "Selected 旅行Vlog | 周末短途游 and 新品开箱｜这款相机太惊艳了！; CTA updated to Prepare Selected (2) while six other discovered rows stayed unselected."
+        },
+        {
+          "action": "Click Prepare Selected",
+          "expected": "The app advances only the selected items into preparation",
+          "observed": "Navigated to /sessions/session_35de08157871f2d4eaefb8dc/preparation showing exactly two preparation items matching the selected titles."
+        },
+        {
+          "action": "Inspect prepare request payload and resulting session data",
+          "expected": "POST /api/sessions/[sessionId]/prepare is scoped to the selected item ids and leaves other discovered items outside the preparation set",
+          "observed": "POST /api/sessions/session_35de08157871f2d4eaefb8dc/prepare returned preparedIds [item_8a54ee1d1af66136226c69d5, item_8d926cc24e97f7cfaec59580]; session.selectedIds contained only those two ids while the other six candidates remained prepStatus=pending."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/creator-prep/VAL-CANDIDATES-007-selected-before-prepare.png",
+          "candidate-prep/creator-prep/VAL-PREP-001-003-004-before-refresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/session_35de08157871f2d4eaefb8dc/prepare -> 200 with preparedIds [item_8a54ee1d1af66136226c69d5, item_8d926cc24e97f7cfaec59580]; GET /api/sessions/session_35de08157871f2d4eaefb8dc showed six unselected candidates still at prepStatus=pending."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-001",
+      "title": "Profile-based preparation starts only for selected items",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Prepare two selected items from the creator candidate review",
+          "expected": "Preparation page renders status rows only for the selected subset",
+          "observed": "Preparation page header showed Preparing 2 items and rendered rows only for 旅行Vlog | 周末短途游 and 新品开箱｜这款相机太惊艳了！."
+        },
+        {
+          "action": "Compare preparation UI to full session candidate list",
+          "expected": "Unselected discovered candidates are not turned into preparation entries",
+          "observed": "GET /api/sessions/session_35de08157871f2d4eaefb8dc contained eight candidates total, but only the two selected ids were ready/prepared and visible on the preparation page; the other six remained pending and absent from the preparation list."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/creator-prep/VAL-PREP-001-003-004-before-refresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/sessions/session_35de08157871f2d4eaefb8dc/prepare -> 200; subsequent GET /api/sessions/session_35de08157871f2d4eaefb8dc showed selectedIds limited to the two prepared items and all other candidates still pending."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-003",
+      "title": "Preparation page renders only the supported lifecycle statuses",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Inspect the preparation summary counters and item rows after preparation",
+          "expected": "Visible statuses use only the supported lifecycle values pending/downloading/transcribing/ready/failed",
+          "observed": "The summary rendered 0 pending, 0 downloading, 0 transcribing, 2 ready, 0 failed, and each visible item row was labeled Ready."
+        },
+        {
+          "action": "Inspect session payload for item statuses",
+          "expected": "Returned status values stay within the supported V1 lifecycle set",
+          "observed": "Session API showed prepStatus values of ready for the two prepared items and pending for the remaining six candidates; no unsupported or ambiguous status label appeared in the UI or payload."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/creator-prep/VAL-PREP-001-003-004-before-refresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_35de08157871f2d4eaefb8dc -> prepStatus values limited to pending and ready; preparation UI counters used the supported labels pending/downloading/transcribing/ready/failed."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-004",
+      "title": "Each preparation item shows independent state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open the preparation page for the two selected items",
+          "expected": "Each preparation item displays its own title and current status",
+          "observed": "The page showed separate rows for 旅行Vlog | 周末短途游 and 新品开箱｜这款相机太惊艳了！, each with its own artifact paths, Ready label, and Open Studio action."
+        },
+        {
+          "action": "Check that items can be distinguished independently",
+          "expected": "Operator can tell which title belongs to which current state",
+          "observed": "Both rows remained visually distinct with per-item titles and status badges, confirming item-level independent state presentation."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/creator-prep/VAL-PREP-001-003-004-before-refresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_35de08157871f2d4eaefb8dc returned per-item prepStatus values for each selected id, matching the separate rows shown in the UI."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-007",
+      "title": "Ready state is restored from persisted local outputs after refresh",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture the preparation page when both selected items are ready",
+          "expected": "Ready state is visible before refresh",
+          "observed": "Before reload, both selected items showed Ready with local video/transcript artifact paths."
+        },
+        {
+          "action": "Reload the preparation page",
+          "expected": "Ready items stay ready after refresh instead of resetting to an in-progress state",
+          "observed": "After reload, the page still showed Preparing 2 items with 2 ready and 0 pending/downloading/transcribing/failed; both rows remained Ready with the same artifact paths and Open Studio links."
+        },
+        {
+          "action": "Inspect the refreshed session payload",
+          "expected": "Persisted outputs restore ready state on GET after refresh",
+          "observed": "GET /api/sessions/session_35de08157871f2d4eaefb8dc after reload continued to return prepStatus=ready plus artifact paths for both prepared ids."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/creator-prep/VAL-PREP-001-003-004-before-refresh.png",
+          "candidate-prep/creator-prep/VAL-PREP-007-after-refresh.png"
+        ],
+        "consoleErrors": "none",
+        "network": "GET /api/sessions/session_35de08157871f2d4eaefb8dc before and after refresh returned both prepared items with prepStatus=ready and persisted artifact paths."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The validator prompt referenced /Users/wendy/.factory/library/user-testing.md, but that file was not present on disk.",
+      "resolved": true,
+      "resolution": "Used the mission AGENTS.md testing guidance plus the validation contract and existing flow report examples instead.",
+      "affectedAssertions": [
+        "VAL-CANDIDATES-007",
+        "VAL-PREP-001",
+        "VAL-PREP-003",
+        "VAL-PREP-004",
+        "VAL-PREP-007"
+      ]
+    },
+    {
+      "description": "agent-browser's built-in network log did not retain the app requests for this session.",
+      "resolved": true,
+      "resolution": "Captured network evidence with direct curl requests against the same session endpoints after reproducing the browser flow.",
+      "affectedAssertions": [
+        "VAL-CANDIDATES-007",
+        "VAL-PREP-001",
+        "VAL-PREP-003",
+        "VAL-PREP-004",
+        "VAL-PREP-007"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 5 assertions: 5 passed, 0 failed, 0 blocked. The creator flow prepared only the two manually selected candidates, the preparation page showed only supported status labels and distinct per-item rows, and both ready items stayed ready after refresh from persisted local outputs."
+}

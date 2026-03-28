@@ -1,0 +1,129 @@
+{
+  "groupId": "mixed-prep-failures",
+  "testedAt": "2026-03-28T12:33:45Z",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "browserSessionId": "db3f1bb25c2a__candidate-prep-mixed",
+    "sessionId": "session_cd321aa5b006c05083606910",
+    "selectedIds": [
+      "item_b6e45d09d14d12c7aae47fa4",
+      "item_0677a6d94064f9ed7b67f66a"
+    ],
+    "failingItemId": "item_b6e45d09d14d12c7aae47fa4",
+    "passingItemId": "item_0677a6d94064f9ed7b67f66a"
+  },
+  "toolsUsed": [
+    "agent-browser",
+    "python3"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PREP-005",
+      "title": "One item failure does not block other items",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Open the seeded creator session and confirm the two assigned items remain selected on candidate review.",
+          "expected": "Only the selected failing and passing items are prepared when preparation starts.",
+          "observed": "The candidate review showed exactly the two assigned selected items before clicking Prepare Selected (2)."
+        },
+        {
+          "action": "Click Prepare Selected and wait for preparation statuses to settle.",
+          "expected": "One item becomes ready while the other fails with a visible reason.",
+          "observed": "今日穿搭分享 💃 became Ready with Open Studio available, while 如何制作完美的咖啡拉花 ☕ showed Failed with reason \"Failed to download video: Video is private or unavailable\"."
+        },
+        {
+          "action": "Inspect the persisted session payload for the two items.",
+          "expected": "API payload reflects mixed ready/failed outcomes together.",
+          "observed": "GET /api/sessions/session_cd321aa5b006c05083606910 returned item_0677a6d94064f9ed7b67f66a with prepStatus ready and artifacts, and item_b6e45d09d14d12c7aae47fa4 with prepStatus failed and prepFailureReason."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/mixed-prep-failures/selected-items-before-prepare.png",
+          "candidate-prep/mixed-prep-failures/prep-mixed-statuses-initial.png"
+        ],
+        "consoleErrors": "none beyond a favicon 404 unrelated to the flow",
+        "network": "GET /api/sessions/session_cd321aa5b006c05083606910 -> 200 with mixed outcomes: item_0677a6d94064f9ed7b67f66a prepStatus=ready, item_b6e45d09d14d12c7aae47fa4 prepStatus=failed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-006",
+      "title": "Failed items expose retry with item-scoped recovery",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Observe the failed item row after preparation completes.",
+          "expected": "The failed item shows a retry control.",
+          "observed": "The failing row displayed a visible Retry button while the ready row kept its Open Studio affordance."
+        },
+        {
+          "action": "Click Retry on the failed item only.",
+          "expected": "Only the failed item is retried and other items keep their current state.",
+          "observed": "POST /api/sessions/session_cd321aa5b006c05083606910/prepare/item_b6e45d09d14d12c7aae47fa4/retry was issued for the failing item only; the ready item remained ready with Open Studio still visible."
+        },
+        {
+          "action": "Recheck the preparation page after retry.",
+          "expected": "Retry remains item-scoped even if the failed item does not recover.",
+          "observed": "The retry left 今日穿搭分享 💃 in ready state and the failed item remained failed, confirming no cross-item regression."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/mixed-prep-failures/prep-mixed-statuses-initial.png",
+          "candidate-prep/mixed-prep-failures/after-item-retry.png"
+        ],
+        "consoleErrors": "none beyond a favicon 404 unrelated to the flow",
+        "network": "POST /api/sessions/session_cd321aa5b006c05083606910/prepare/item_b6e45d09d14d12c7aae47fa4/retry -> request observed; ready sibling item remained unchanged in subsequent GET /api/sessions/session_cd321aa5b006c05083606910 responses"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-008",
+      "title": "Failed state remains failed until retry succeeds",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Capture the failed state before refresh.",
+          "expected": "The failed item shows failed status and reason before page reload.",
+          "observed": "The failing item showed Failed with reason \"Failed to download video: Video is private or unavailable\" before refresh."
+        },
+        {
+          "action": "Refresh the preparation page.",
+          "expected": "The failed state and reason persist after refresh.",
+          "observed": "After reload, the failing item still showed Failed with the same reason and still exposed Retry; it did not appear ready."
+        },
+        {
+          "action": "Retry the item once and check the page again.",
+          "expected": "The item remains failed until a retry actually succeeds.",
+          "observed": "After retry, the item still showed Failed with the same reason, so the UI did not falsely transition it to ready."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/mixed-prep-failures/prep-mixed-statuses-initial.png",
+          "candidate-prep/mixed-prep-failures/failed-state-after-refresh.png",
+          "candidate-prep/mixed-prep-failures/after-item-retry.png"
+        ],
+        "consoleErrors": "none beyond a favicon 404 unrelated to the flow",
+        "network": "GET /api/sessions/session_cd321aa5b006c05083606910 before and after refresh -> 200 with item_b6e45d09d14d12c7aae47fa4 prepStatus=failed and prepFailureReason unchanged; retry POST did not change status to ready"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The first attempted /sessions/{sessionId}/candidates path returned a 404; the active candidate review surface for this app is /sessions/{sessionId}.",
+      "resolved": true,
+      "resolution": "Continued the assigned flow at /sessions/session_cd321aa5b006c05083606910 where the seeded candidate review loaded correctly.",
+      "affectedAssertions": [
+        "VAL-PREP-005",
+        "VAL-PREP-006",
+        "VAL-PREP-008"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 3 assertions: 3 passed, 0 failed, 0 blocked. Mixed outcomes worked as expected: one item stayed failed while the other remained ready, retry was item-scoped, and failed state persisted across refresh and unsuccessful retry."
+}

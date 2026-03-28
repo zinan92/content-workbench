@@ -1,0 +1,87 @@
+{
+  "groupId": "single-video-prep",
+  "testedAt": "2026-03-28T12:28:03.046624+00:00",
+  "isolation": {
+    "baseUrl": "http://127.0.0.1:3100",
+    "browserSessionId": "db3f1bb25c2a__candidate-prep-single",
+    "missionDir": "/Users/wendy/.factory/missions/bc420aa2-6f25-4c89-aba7-f803d39aa064"
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-INTAKE-002",
+      "title": "Single-video intake classifies the link and routes directly to preparation",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to / and inspect the intake form",
+          "expected": "Single input intake form is available",
+          "observed": "The page showed a Douyin Link textbox and Continue button"
+        },
+        {
+          "action": "Submit a supported Douyin single-video URL",
+          "expected": "App classifies the link as a single video and routes directly to preparation",
+          "observed": "POST /api/intake completed and the app navigated directly to /sessions/session_e0169aa6fe9527cb9724c0e6 without showing candidate review"
+        },
+        {
+          "action": "Inspect the destination session page",
+          "expected": "Preparation page identifies the session as single video",
+          "observed": "The page displayed 'Input Type: single video' and 'Phase: preparation'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/single-video-prep/VAL-INTAKE-002-intake-success-state.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/intake -> 200; follow-up GET /api/sessions/session_e0169aa6fe9527cb9724c0e6 -> 200"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PREP-002",
+      "title": "Single-video preparation starts with exactly one item",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Observe the first page after single-video intake",
+          "expected": "Preparation page is shown with one preparation item and no candidate-review detour",
+          "observed": "The first page after intake was the preparation page and no candidate-review UI appeared"
+        },
+        {
+          "action": "Review visible preparation content",
+          "expected": "Exactly one preparation item for the selected video is rendered",
+          "observed": "The page showed a 'Preparation Status (Coming Soon)' placeholder instead of a preparation item row"
+        },
+        {
+          "action": "Inspect session payload for preparation items",
+          "expected": "Session payload includes exactly one item",
+          "observed": "GET /api/sessions/session_e0169aa6fe9527cb9724c0e6 returned itemCount 0 and an empty items array"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "candidate-prep/single-video-prep/VAL-PREP-002-single-item-prep-page.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/intake -> 200; GET /api/sessions/session_e0169aa6fe9527cb9724c0e6 -> 200 with zero items"
+      },
+      "issues": "Single-video intake reaches preparation, but the preparation session contains zero items and the UI only shows a coming-soon placeholder instead of one preparation item."
+    }
+  ],
+  "frictions": [
+    {
+      "description": "The shared user-testing guidance file /Users/wendy/.factory/library/user-testing.md was missing, so only mission-local guidance and the validation contract were available.",
+      "resolved": false,
+      "resolution": "Proceeded using AGENTS.md and validation-contract.md only.",
+      "affectedAssertions": [
+        "VAL-INTAKE-002",
+        "VAL-PREP-002"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 2 assertions: 1 passed, 1 failed (VAL-PREP-002: preparation page showed zero items instead of exactly one)."
+}

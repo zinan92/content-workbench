@@ -22,6 +22,7 @@ export interface DiscoveryResult {
  */
 export interface DiscoveryAdapter {
   discoverFromCreatorProfile(profileUrl: string): Promise<DiscoveryResult>;
+  resolveSingleVideo(videoUrl: string): Promise<SourceMetadata>;
 }
 
 /**
@@ -31,6 +32,28 @@ export interface DiscoveryAdapter {
  * without depending on brittle external crawler state.
  */
 export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
+  async resolveSingleVideo(videoUrl: string): Promise<SourceMetadata> {
+    // Simulate resolution delay
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Extract video ID from URL for deterministic fixture data
+    const urlParts = videoUrl.split('/');
+    const videoIdPart = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+    
+    // Return fixture metadata for the single video
+    return {
+      title: `Single Video Content - ${videoIdPart.substring(0, 8)}`,
+      sourceUrl: videoUrl,
+      publishDate: new Date().toISOString(),
+      duration: 60,
+      likes: 50000,
+      comments: 1200,
+      shares: 350,
+      authorName: 'Video Creator',
+      authorId: 'single-video-author',
+    };
+  }
+
   async discoverFromCreatorProfile(_profileUrl: string): Promise<DiscoveryResult> {
     // Simulate discovery delay
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -138,6 +161,10 @@ export class FixtureDiscoveryAdapter implements DiscoveryAdapter {
  * Partial-results fixture adapter for testing partial discovery handling
  */
 export class PartialFixtureDiscoveryAdapter implements DiscoveryAdapter {
+  async resolveSingleVideo(videoUrl: string): Promise<SourceMetadata> {
+    return new FixtureDiscoveryAdapter().resolveSingleVideo(videoUrl);
+  }
+
   async discoverFromCreatorProfile(_profileUrl: string): Promise<DiscoveryResult> {
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -198,6 +225,14 @@ export class DiscoveryResolutionError extends Error {
  * Failing discovery adapter for testing resolution failures
  */
 export class FailingDiscoveryAdapter implements DiscoveryAdapter {
+  async resolveSingleVideo(videoUrl: string): Promise<SourceMetadata> {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    throw new DiscoveryResolutionError(
+      'Failed to resolve video. The video may be private, deleted, or temporarily unavailable.',
+      videoUrl
+    );
+  }
+
   async discoverFromCreatorProfile(profileUrl: string): Promise<DiscoveryResult> {
     await new Promise(resolve => setTimeout(resolve, 50));
     throw new DiscoveryResolutionError(
