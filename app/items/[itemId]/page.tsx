@@ -18,6 +18,7 @@ export default function StudioPage() {
   const router = useRouter();
   const itemId = params.itemId as string;
   const [item, setItem] = useState<ContentItem | null>(null);
+  const [otherReadyItems, setOtherReadyItems] = useState<Array<{ id: string; title: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<Platform>('xiaohongshu');
@@ -28,6 +29,14 @@ export default function StudioPage() {
     'wechat-oa': { title: '', body: '', coverNotes: '' },
     x: { title: '', body: '', coverNotes: '' },
   });
+  const [checklists, setChecklists] = useState<Record<Platform, Record<string, boolean>>>({
+    xiaohongshu: {},
+    bilibili: {},
+    'video-channel': {},
+    'wechat-oa': {},
+    x: {},
+  });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     async function loadItem() {
@@ -47,14 +56,23 @@ export default function StudioPage() {
         
         const data = await response.json();
         setItem(data.item);
+        setOtherReadyItems(data.otherReadyItems || []);
         
-        // Initialize drafts from loaded item
+        // Initialize drafts and checklists from loaded item
         const loadedDrafts: Record<Platform, { title: string; body: string; coverNotes: string }> = {
           xiaohongshu: { title: '', body: '', coverNotes: '' },
           bilibili: { title: '', body: '', coverNotes: '' },
           'video-channel': { title: '', body: '', coverNotes: '' },
           'wechat-oa': { title: '', body: '', coverNotes: '' },
           x: { title: '', body: '', coverNotes: '' },
+        };
+        
+        const loadedChecklists: Record<Platform, Record<string, boolean>> = {
+          xiaohongshu: {},
+          bilibili: {},
+          'video-channel': {},
+          'wechat-oa': {},
+          x: {},
         };
         
         PLATFORMS.forEach(({ id }) => {
@@ -65,10 +83,12 @@ export default function StudioPage() {
               body: platformDraft.body || '',
               coverNotes: platformDraft.coverNotes || '',
             };
+            loadedChecklists[id] = platformDraft.checklist || {};
           }
         });
         
         setDrafts(loadedDrafts);
+        setChecklists(loadedChecklists);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load item');
       } finally {
@@ -87,6 +107,68 @@ export default function StudioPage() {
         [field]: value,
       },
     }));
+  };
+
+  const handleChecklistChange = (platform: Platform, key: string, checked: boolean) => {
+    setChecklists(prev => ({
+      ...prev,
+      [platform]: {
+        ...prev[platform],
+        [key]: checked,
+      },
+    }));
+  };
+
+  const handleSaveDraft = async () => {
+    setSaveStatus('saving');
+
+    try {
+      const activeDraft = drafts[activePlatform];
+      const activeChecklist = checklists[activePlatform];
+
+      const response = await fetch(`/api/items/${itemId}/drafts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: activePlatform,
+          title: activeDraft.title,
+          body: activeDraft.body,
+          coverNotes: activeDraft.coverNotes,
+          checklist: activeChecklist,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save draft');
+      }
+
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch {
+      setSaveStatus('error');
+    }
+  };
+
+  const handlePlatformSwitch = (platform: Platform) => {
+    setActivePlatform(platform);
+    setSaveStatus('idle');
+  };
+
+  const handleNextPlatform = () => {
+    const currentIndex = PLATFORMS.findIndex(p => p.id === activePlatform);
+    const nextIndex = (currentIndex + 1) % PLATFORMS.length;
+    handlePlatformSwitch(PLATFORMS[nextIndex].id);
+  };
+
+  const handleNextReadyVideo = async () => {
+    if (otherReadyItems.length === 0) return;
+
+    // Save current draft before navigating
+    await handleSaveDraft();
+
+    // Navigate to next ready item
+    const nextItem = otherReadyItems[0];
+    router.push(`/items/${nextItem.id}`);
   };
 
   if (loading) {
@@ -289,7 +371,7 @@ export default function StudioPage() {
               {PLATFORMS.map(({ id, label }) => (
                 <button
                   key={id}
-                  onClick={() => setActivePlatform(id)}
+                  onClick={() => handlePlatformSwitch(id)}
                   className={`px-4 py-3 text-sm font-medium transition-colors ${
                     activePlatform === id
                       ? 'text-blue-600 border-b-2 border-blue-600'
@@ -362,11 +444,80 @@ export default function StudioPage() {
                 </p>
               </div>
 
-              {/* Save indicator (placeholder for future persistence) */}
+              {/* Checklist */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Checklist</h3>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={checklists[activePlatform]['cover-uploaded'] || false}
+                      onChange={(e) => handleChecklistChange(activePlatform, 'cover-uploaded', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Cover uploaded</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={checklists[activePlatform]['tags-added'] || false}
+                      onChange={(e) => handleChecklistChange(activePlatform, 'tags-added', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Tags added</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={checklists[activePlatform]['ready-to-publish'] || false}
+                      onChange={(e) => handleChecklistChange(activePlatform, 'ready-to-publish', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Ready to publish</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Save Draft Section */}
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
-                  Draft changes are tracked locally. Persistence will be implemented in the next feature.
-                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={saveStatus === 'saving'}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
+                    </button>
+                    
+                    {saveStatus === 'success' && (
+                      <p className="text-sm text-green-600">Draft saved successfully</p>
+                    )}
+                    
+                    {saveStatus === 'error' && (
+                      <p className="text-sm text-red-600">Failed to save draft</p>
+                    )}
+                  </div>
+
+                  {/* Next-Step Affordances */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleNextPlatform}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                      Next Platform →
+                    </button>
+                    
+                    {otherReadyItems.length > 0 && (
+                      <button
+                        onClick={handleNextReadyVideo}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      >
+                        Next Ready Video →
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

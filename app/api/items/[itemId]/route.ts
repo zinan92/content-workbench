@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { findItemById } from '@/lib/services/workspace-store';
+import { findItemById, loadSession, loadItems } from '@/lib/services/workspace-store';
 
 export async function GET(
   request: Request,
@@ -30,8 +30,24 @@ export async function GET(
       );
     }
 
-    // Return item data for studio
-    return NextResponse.json({ item });
+    // Load other ready items from the same session for next-video navigation
+    const session = await loadSession(item.sessionId);
+    const otherReadyItems: Array<{ id: string; title: string }> = [];
+
+    if (session) {
+      const allItems = await loadItems(item.sessionId);
+      for (const sessionItem of allItems) {
+        if (sessionItem.id !== itemId && sessionItem.prepStatus === 'ready') {
+          otherReadyItems.push({
+            id: sessionItem.id,
+            title: sessionItem.source.title,
+          });
+        }
+      }
+    }
+
+    // Return item data for studio plus other ready items
+    return NextResponse.json({ item, otherReadyItems });
 
   } catch (error) {
     console.error('Item load error:', error);
