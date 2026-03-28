@@ -1,0 +1,38 @@
+{
+  "milestone": "candidate-prep",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "npm run test -- --run --maxWorkers=5",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "Mission features reference skill `fullstack-web-worker`, but the expected skill file path from reviewer instructions (`.factory/skills/fullstack-web-worker/SKILL.md`) is absent in this workspace.",
+      "reason": "ambiguous: reviewer evidence checks personal skill path and does not establish a project-level workflow defect for this milestone"
+    }
+  ],
+  "previousRound": null
+}
