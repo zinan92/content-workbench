@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import type { Session, ContentItem } from '@/lib/domain/types';
 import CandidateTable from '@/components/CandidateTable';
 
@@ -11,12 +11,20 @@ interface SessionData {
   isPartial?: boolean;
 }
 
+type SortField = 'title' | 'publishDate' | 'duration' | 'likes' | 'comments' | 'shares' | 'simpleScore';
+type SortDirection = 'asc' | 'desc';
+
 export default function SessionPage() {
   const params = useParams();
+  const router = useRouter();
   const sessionId = params.sessionId as string;
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortField>('simpleScore');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [filterRecommended, setFilterRecommended] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
   useEffect(() => {
     async function loadSession() {
@@ -36,6 +44,60 @@ export default function SessionPage() {
 
     loadSession();
   }, [sessionId]);
+
+  const handleSelectionChange = useCallback(async (selectedIds: string[]) => {
+    if (!sessionData) return;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/selection`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update selection');
+      }
+
+      const data = await response.json();
+      setSessionData(prev => prev ? { ...prev, session: data.session } : null);
+    } catch (err) {
+      console.error('Selection update error:', err);
+      setError('Failed to update selection');
+    }
+  }, [sessionId, sessionData]);
+
+  const handlePrepareSelected = useCallback(async () => {
+    if (!sessionData || sessionData.session.selectedIds.length === 0) return;
+
+    setPreparing(true);
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/prepare`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to prepare selected items');
+      }
+
+      // Navigate to preparation page (will be implemented in next feature)
+      router.push(`/sessions/${sessionId}/preparation`);
+    } catch (err) {
+      console.error('Prepare error:', err);
+      setError('Failed to prepare selected items');
+    } finally {
+      setPreparing(false);
+    }
+  }, [sessionId, sessionData, router]);
+
+  const handleSort = useCallback((field: SortField, direction: SortDirection) => {
+    setSortBy(field);
+    setSortDirection(direction);
+  }, []);
+
+  const handleFilterChange = useCallback((recommended: boolean) => {
+    setFilterRecommended(recommended);
+  }, []);
 
   if (loading) {
     return (
@@ -126,13 +188,11 @@ export default function SessionPage() {
                 </h2>
                 {session.selectedIds.length > 0 && (
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    onClick={() => {
-                      // TODO: Wire up Prepare Selected in next feature
-                      alert('Prepare Selected will be implemented in the next feature');
-                    }}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    onClick={handlePrepareSelected}
+                    disabled={preparing}
                   >
-                    Prepare Selected ({session.selectedIds.length})
+                    {preparing ? 'Preparing...' : `Prepare Selected (${session.selectedIds.length})`}
                   </button>
                 )}
               </div>
@@ -140,11 +200,12 @@ export default function SessionPage() {
               <CandidateTable
                 candidates={candidates}
                 selectedIds={session.selectedIds}
-                onSelectionChange={(selectedIds) => {
-                  // Update selection state
-                  // TODO: Wire up selection persistence in next feature
-                  console.log('Selection changed:', selectedIds);
-                }}
+                onSelectionChange={handleSelectionChange}
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                filterRecommended={filterRecommended}
+                onFilterChange={handleFilterChange}
               />
             </div>
           </div>

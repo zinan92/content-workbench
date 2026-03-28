@@ -1,0 +1,18 @@
+{
+  "milestone": "scaffold",
+  "round": 1,
+  "status": "overridden",
+  "resultsSummary": {
+    "totalAssertions": 0,
+    "passed": 0,
+    "failed": 0,
+    "blocked": 0,
+    "pending": 0
+  },
+  "blockingIssues": [],
+  "deferredAssertions": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [],
+  "overrideJustification": "Scaffold implementation features intentionally have empty fulfills arrays because the validation contract is entirely user-facing and begins with intake/discovery behavior. There are no scaffold assertions to execute, so this validator is marked completed as not applicable for the scaffold milestone."
+}

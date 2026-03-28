@@ -16,21 +16,89 @@
 'use client';
 
 import type { ContentItem } from '@/lib/domain/types';
+import { useMemo } from 'react';
+
+type SortField = 'title' | 'publishDate' | 'duration' | 'likes' | 'comments' | 'shares' | 'simpleScore';
+type SortDirection = 'asc' | 'desc';
 
 interface CandidateTableProps {
   candidates: ContentItem[];
   selectedIds: string[];
   onSelectionChange: (selectedIds: string[]) => void;
+  sortBy?: SortField;
+  sortDirection?: SortDirection;
+  onSort?: (field: SortField, direction: SortDirection) => void;
+  filterRecommended?: boolean;
+  onFilterChange?: (filterRecommended: boolean) => void;
 }
 
 export default function CandidateTable({
   candidates,
   selectedIds,
   onSelectionChange,
+  sortBy,
+  sortDirection = 'desc',
+  onSort,
+  filterRecommended = false,
+  onFilterChange,
 }: CandidateTableProps) {
+  // Apply filtering
+  const filteredCandidates = useMemo(() => {
+    if (!filterRecommended) return candidates;
+    return candidates.filter(c => c.recommended);
+  }, [candidates, filterRecommended]);
+
+  // Apply sorting
+  const sortedCandidates = useMemo(() => {
+    if (!sortBy) return filteredCandidates;
+
+    const sorted = [...filteredCandidates].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      if (sortBy === 'title') {
+        aValue = a.source.title || '';
+        bValue = b.source.title || '';
+      } else if (sortBy === 'publishDate') {
+        aValue = a.source.publishDate || '';
+        bValue = b.source.publishDate || '';
+      } else if (sortBy === 'duration') {
+        aValue = a.source.duration ?? 0;
+        bValue = b.source.duration ?? 0;
+      } else if (sortBy === 'likes') {
+        aValue = a.source.likes ?? 0;
+        bValue = b.source.likes ?? 0;
+      } else if (sortBy === 'comments') {
+        aValue = a.source.comments ?? 0;
+        bValue = b.source.comments ?? 0;
+      } else if (sortBy === 'shares') {
+        aValue = a.source.shares ?? 0;
+        bValue = b.source.shares ?? 0;
+      } else {
+        // simpleScore
+        aValue = a.simpleScore;
+        bValue = b.simpleScore;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        const aNum = typeof aValue === 'number' ? aValue : 0;
+        const bNum = typeof bValue === 'number' ? bValue : 0;
+        return sortDirection === 'asc'
+          ? aNum - bNum
+          : bNum - aNum;
+      }
+    });
+
+    return sorted;
+  }, [filteredCandidates, sortBy, sortDirection]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      onSelectionChange(candidates.map(c => c.id));
+      onSelectionChange(sortedCandidates.map(c => c.id));
     } else {
       onSelectionChange([]);
     }
@@ -44,10 +112,21 @@ export default function CandidateTable({
     }
   };
 
-  const allSelected = candidates.length > 0 && selectedIds.length === candidates.length;
-  const someSelected = selectedIds.length > 0 && selectedIds.length < candidates.length;
+  const handleSort = (field: SortField) => {
+    if (!onSort) return;
+    
+    // Toggle direction if clicking same field
+    if (sortBy === field) {
+      onSort(field, sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      onSort(field, 'desc');
+    }
+  };
 
-  if (candidates.length === 0) {
+  const allSelected = sortedCandidates.length > 0 && selectedIds.length === sortedCandidates.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < sortedCandidates.length;
+
+  if (sortedCandidates.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
         <p className="text-gray-600">No candidates found.</p>
@@ -55,59 +134,84 @@ export default function CandidateTable({
     );
   }
 
+  const renderSortableHeader = (field: SortField, label: string, align: 'left' | 'right' | 'center' = 'left') => {
+    const isSorted = sortBy === field;
+    const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
+    
+    return (
+      <th key={field} className={`px-4 py-3 ${alignClass}`}>
+        <button
+          onClick={() => handleSort(field)}
+          className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1"
+          aria-label={`Sort by ${label}`}
+        >
+          {label}
+          {isSorted && (
+            <span className="text-xs">
+              {sortDirection === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </button>
+      </th>
+    );
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse bg-white shadow-sm rounded-lg">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="px-4 py-3 text-left">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(input) => {
-                  if (input) input.indeterminate = someSelected;
-                }}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
-                aria-label="Select all candidates"
-              />
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              Title
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              Published
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              Duration
-            </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
-              Likes
-            </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
-              Comments
-            </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
-              Shares
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              Score
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              Recommended
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {candidates.map((candidate) => {
-            const isSelected = selectedIds.includes(candidate.id);
-            return (
-              <tr
-                key={candidate.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  isSelected ? 'bg-blue-50' : ''
-                }`}
-              >
+    <div className="space-y-4">
+      {/* Filter controls */}
+      {onFilterChange && (
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={filterRecommended}
+              onChange={(e) => onFilterChange(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300"
+              aria-label="Recommended only"
+            />
+            <span>Recommended only</span>
+          </label>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-white shadow-sm rounded-lg">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = someSelected;
+                  }}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                  aria-label="Select all candidates"
+                />
+              </th>
+              {renderSortableHeader('title', 'Title')}
+              {renderSortableHeader('publishDate', 'Published')}
+              {renderSortableHeader('duration', 'Duration')}
+              {renderSortableHeader('likes', 'Likes', 'right')}
+              {renderSortableHeader('comments', 'Comments', 'right')}
+              {renderSortableHeader('shares', 'Shares', 'right')}
+              {renderSortableHeader('simpleScore', 'Score', 'center')}
+              <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                Recommended
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCandidates.map((candidate) => {
+              const isSelected = selectedIds.includes(candidate.id);
+              return (
+                <tr
+                  key={candidate.id}
+                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'bg-blue-50' : ''
+                  }`}
+                >
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
@@ -163,6 +267,7 @@ export default function CandidateTable({
           })}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

@@ -1,0 +1,21 @@
+{
+  "featureId": "fix-scaffold-lint-command-compatibility",
+  "reviewedAt": "2026-03-28T09:28:23.852820+00:00",
+  "commitId": "aba57be",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Implementation matches the feature goal: lint command is migrated off removed `next lint` to ESLint CLI for Next.js 16, flat ESLint config updated to supported `eslint-config-next` presets, and validation evidence in handoff shows lint/typecheck/tests passing with no app-shell-impacting code changes.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The worker did not invoke required dependent skills listed in `fullstack-web-worker` (notably `verification-before-completion`, and also not `test-driven-development`/`agent-browser`/`systematic-debugging`), yet still completed successfully for a config-only fix.",
+      "evidence": ".factory/skills/fullstack-web-worker/SKILL.md requires these invocations; transcript skeleton for session b7f06b19-06c1-4beb-baa0-3acb11ff428c shows only `mission-worker-base` and `fullstack-web-worker` Skill calls."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass. The lint compatibility fix is correct and scoped: `package.json` now uses `eslint .`, `eslint.config.mjs` migrated to Next 16-compatible flat config presets, and reported validators (`npm run lint`, `npm run typecheck`, `npm run test -- --run --maxWorkers=5`) all pass. One shared-state observation: required sub-skill invocation guidance in the worker skill was not followed in transcript."
+}

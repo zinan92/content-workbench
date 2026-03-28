@@ -1,0 +1,39 @@
+{
+  "featureId": "workspace-models-and-json-store",
+  "reviewedAt": "2026-03-28T09:28:32Z",
+  "commitId": "39ab3a6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "Core JSON workspace persistence and schema scaffolding are implemented with broad test coverage, but the feature includes non-production/manual fixture script additions and exposes API surface mismatches with architectural intent for immutable stable IDs and explicit JSON utilities boundaries.",
+    "issues": [
+      {
+        "file": "tests/manual-fixture.ts",
+        "line": 1,
+        "severity": "blocking",
+        "description": "Feature scope required red-green tests for save/load/update semantics; adding an executable manual fixture script as committed production test asset is out-of-scope and introduces persistent workspace-writing side effects that are not tied to automated verification requirements."
+      },
+      {
+        "file": "lib/domain/types.ts",
+        "line": 20,
+        "severity": "non_blocking",
+        "description": "Stable IDs are modeled as plain string aliases (ContentItemId/SessionId) rather than branded/opaque types, weakening compile-time guarantees for 'stable IDs' called out in the feature description and increasing accidental ID mixup risk."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Worker handoff claims full validator success while noting lint failure context in discoveredIssues for this same run, indicating procedure ambiguity on how to report validator state during known scaffold lint incompatibility periods.",
+      "evidence": "handoffs/2026-03-28T09-18-29-660Z__workspace-models-and-json-store__ae0d5ea3-3c2d-46b6-9440-267e23b87464.json: validatorsPassed=true plus discoveredIssues mentions ESLint failure context"
+    },
+    {
+      "area": "conventions",
+      "observation": "Manual fixture execution artifact path was hard-coded to a generated session directory during verification, but AGENTS/library docs do not define whether committed ad-hoc fixture scripts are allowed for persistence verification.",
+      "evidence": "commit 39ab3a6 includes tests/manual-fixture.ts and transcript shows `npx tsx tests/manual-fixture.ts` + direct reads from generated data/workspaces/session_*"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review failed due to scope/quality concerns: the feature implements required workspace-store persistence capabilities and tests, but commits an out-of-scope manual fixture script and has weaker-than-expected stable-ID type safety."
+}
