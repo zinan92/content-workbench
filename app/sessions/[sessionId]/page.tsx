@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import type { Session } from '@/lib/domain/types';
+import type { Session, ContentItem } from '@/lib/domain/types';
+import CandidateTable from '@/components/CandidateTable';
+
+interface SessionData {
+  session: Session;
+  candidates?: ContentItem[];
+  isPartial?: boolean;
+}
 
 export default function SessionPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
-  const [session, setSession] = useState<Session | null>(null);
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +26,7 @@ export default function SessionPage() {
           throw new Error('Session not found');
         }
         const data = await response.json();
-        setSession(data);
+        setSessionData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load session');
       } finally {
@@ -43,9 +50,9 @@ export default function SessionPage() {
     );
   }
 
-  if (error || !session) {
+  if (error || !sessionData) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <h3 className="text-sm font-medium text-red-800">Error</h3>
@@ -58,12 +65,14 @@ export default function SessionPage() {
     );
   }
 
+  const { session, candidates = [], isPartial = false } = sessionData;
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            Session: {sessionId}
+            {session.inputType === 'creator-profile' ? 'Candidate Review' : 'Session'}
           </h1>
           <div className="text-sm text-gray-600 space-y-1">
             <p>
@@ -81,16 +90,63 @@ export default function SessionPage() {
         </div>
 
         {session.inputType === 'creator-profile' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h2 className="text-lg font-medium text-blue-900 mb-2">
-              Candidate Review (Coming Soon)
-            </h2>
-            <p className="text-blue-800 text-sm">
-              This page will show discovered candidate videos for review and selection.
-            </p>
-            <p className="text-blue-700 text-xs mt-3">
-              Expected next: Discovery service will populate candidate table before preparation begins.
-            </p>
+          <div className="space-y-4">
+            {/* Partial results warning */}
+            {isPartial && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <svg
+                    className="w-5 h-5 text-yellow-600 mt-0.5 mr-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Partial Results
+                    </h3>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Discovery returned only part of the available content. You can still review and select from the candidates shown below.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Candidate table */}
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-medium text-gray-900">
+                  Discovered Videos ({candidates.length})
+                </h2>
+                {session.selectedIds.length > 0 && (
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      // TODO: Wire up Prepare Selected in next feature
+                      alert('Prepare Selected will be implemented in the next feature');
+                    }}
+                  >
+                    Prepare Selected ({session.selectedIds.length})
+                  </button>
+                )}
+              </div>
+
+              <CandidateTable
+                candidates={candidates}
+                selectedIds={session.selectedIds}
+                onSelectionChange={(selectedIds) => {
+                  // Update selection state
+                  // TODO: Wire up selection persistence in next feature
+                  console.log('Selection changed:', selectedIds);
+                }}
+              />
+            </div>
           </div>
         )}
 

@@ -1,9 +1,10 @@
 /**
- * Session API route - loads session data
+ * Session API route - loads session data and discovered candidates
  */
 
 import { NextResponse } from 'next/server';
-import { loadSession } from '@/lib/services/workspace-store';
+import { loadSession, loadItems } from '@/lib/services/workspace-store';
+import { discoverAndHydrateSession } from '@/lib/services/discovery-service';
 
 export async function GET(
   request: Request,
@@ -13,7 +14,7 @@ export async function GET(
     const { sessionId } = await params;
 
     // Load session
-    const session = await loadSession(sessionId);
+    let session = await loadSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -22,7 +23,35 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(session);
+    // For creator-profile sessions in discovery phase, run discovery if not yet done
+    let items = await loadItems(sessionId);
+    let isPartial = false;
+
+    if (session.inputType === 'creator-profile' && items.length === 0) {
+      try {
+        const result = await discoverAndHydrateSession(sessionId);
+        items = result.items;
+        isPartial = result.isPartial;
+        // Reload session to get updated candidateIds
+        session = await loadSession(sessionId) || session;
+      } catch (error) {
+        console.error('Discovery error:', error);
+        // Return session without candidates on discovery failure
+        // This allows the UI to show a recoverable error state
+      }
+    }
+
+    // Return session with discovered candidates for creator-profile sessions
+    if (session.inputType === 'creator-profile') {
+      return NextResponse.json({
+        session,
+        candidates: items,
+        isPartial,
+      });
+    }
+
+    // For single-video sessions, return session only (no candidate review)
+    return NextResponse.json({ session });
 
   } catch (error) {
     console.error('Session load error:', error);
