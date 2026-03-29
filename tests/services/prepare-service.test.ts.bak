@@ -113,7 +113,7 @@ describe('prepareItems', () => {
     
     await saveWorkspace(workspace);
 
-    await prepareItems(session.id, [item.id], testUserId);
+    await prepareItems(session.id, [item.id]);
 
     const updatedItem = await loadItem(session.id, item.id);
     expect(updatedItem?.artifacts).toBeDefined();
@@ -138,7 +138,7 @@ describe('prepareItems', () => {
     
     await saveWorkspace(workspace);
 
-    await prepareItems(session.id, [item1.id, item2.id], testUserId);
+    await prepareItems(session.id, [item1.id, item2.id]);
 
     const updatedItem1 = await loadItem(session.id, item1.id);
     const updatedItem2 = await loadItem(session.id, item2.id);
@@ -178,7 +178,7 @@ describe('prepareItems', () => {
     // Set mode to cause failures for specific URLs
     process.env.CONTENT_WORKBENCH_PREP_MODE = 'mixed-outcomes';
 
-    await prepareItems(session.id, [item1.id, item2.id], testUserId);
+    await prepareItems(session.id, [item1.id, item2.id]);
 
     const updatedItem1 = await loadItem(session.id, item1.id);
     const updatedItem2 = await loadItem(session.id, item2.id);
@@ -216,7 +216,7 @@ describe('prepareItems', () => {
 
     process.env.CONTENT_WORKBENCH_PREP_MODE = 'mixed-outcomes';
 
-    await prepareItems(session.id, [item.id], testUserId);
+    await prepareItems(session.id, [item.id]);
 
     const updatedItem = await loadItem(session.id, item.id);
     expect(updatedItem?.prepStatus).toBe('failed');
@@ -234,7 +234,7 @@ describe('prepareItems', () => {
     await saveWorkspace(workspace);
 
     // Should not throw
-    await expect(prepareItems(session.id, [], testUserId)).resolves.not.toThrow();
+    await expect(prepareItems(session.id, [])).resolves.not.toThrow();
   });
 
   it('should preserve existing artifacts when retrying a ready item', async () => {
@@ -259,7 +259,7 @@ describe('prepareItems', () => {
     
     await saveWorkspace(workspace);
 
-    await prepareItems(session.id, [item.id], testUserId);
+    await prepareItems(session.id, [item.id]);
 
     const updatedItem = await loadItem(session.id, item.id);
     // Should remain ready with artifacts

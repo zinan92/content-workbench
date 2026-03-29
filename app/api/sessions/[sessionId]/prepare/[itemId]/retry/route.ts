@@ -7,17 +7,20 @@
 
 import { NextResponse } from 'next/server';
 import { retryItemPreparation } from '@/lib/services/prepare-service';
-import { loadItem } from '@/lib/services/workspace-store';
+import { loadOwnedItem } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string; itemId: string }> }
 ) {
   try {
+    // VAL-AUTH-011: Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { sessionId, itemId } = await params;
 
-    // Check item exists
-    const item = await loadItem(sessionId, itemId);
+    // Check item exists and is owned
+    const item = await loadOwnedItem(userId, sessionId, itemId);
     if (!item) {
       return NextResponse.json(
         { error: 'Item not found' },
@@ -25,11 +28,11 @@ export async function POST(
       );
     }
 
-    // Retry preparation
-    await retryItemPreparation(sessionId, itemId);
+    // VAL-AUTH-011: Retry preparation (ownership enforced)
+    await retryItemPreparation(sessionId, itemId, userId);
 
     // Return updated item state
-    const updatedItem = await loadItem(sessionId, itemId);
+    const updatedItem = await loadOwnedItem(userId, sessionId, itemId);
     return NextResponse.json({
       itemId: updatedItem!.id,
       prepStatus: updatedItem!.prepStatus,

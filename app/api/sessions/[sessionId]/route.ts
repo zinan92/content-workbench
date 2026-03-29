@@ -3,7 +3,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { loadSession, loadItems } from '@/lib/services/workspace-store';
+import { loadOwnedSession, loadOwnedItems, saveSession } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 import { discoverAndHydrateSession, hydrateSingleVideoSession } from '@/lib/services/discovery-service';
 import { prepareItems } from '@/lib/services/prepare-service';
 
@@ -12,11 +13,14 @@ export async function GET(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    // VAL-AUTH-005: Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { sessionId } = await params;
 
-    // Load session
-    let session = await loadSession(sessionId);
+    // VAL-AUTH-005: Load session only if owned by current user
+    let session = await loadOwnedSession(userId, sessionId);
 
+    // VAL-AUTH-008: Return blocked state without leaking details
     if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -25,14 +29,14 @@ export async function GET(
     }
 
     // For creator-profile sessions in discovery phase, run discovery if not yet done
-    let items = await loadItems(sessionId);
+    let items = await loadOwnedItems(userId, sessionId);
 
     if (session.inputType === 'creator-profile' && items.length === 0) {
       try {
-        const result = await discoverAndHydrateSession(sessionId);
+        const result = await discoverAndHydrateSession(sessionId, userId);
         items = result.items;
         // Reload session to get updated candidateIds and isPartialDiscovery flag
-        session = await loadSession(sessionId) || session;
+        session = await loadOwnedSession(userId, sessionId) || session;
       } catch (error) {
         console.error('Discovery error:', error);
         // Return session without candidates on discovery failure
@@ -43,14 +47,14 @@ export async function GET(
     // For single-video sessions in preparation phase, hydrate if not yet done
     if (session.inputType === 'single-video' && items.length === 0) {
       try {
-        const item = await hydrateSingleVideoSession(sessionId);
+        const item = await hydrateSingleVideoSession(sessionId, userId);
         items = [item];
         // Reload session to get updated candidateIds and selectedIds
-        session = await loadSession(sessionId) || session;
+        session = await loadOwnedSession(userId, sessionId) || session;
         
         // VAL-PREP-002: Auto-start preparation for single-video sessions
         // Start preparation immediately after hydration (async, fire and forget)
-        prepareItems(sessionId, [item.id]).catch(error => {
+        prepareItems(sessionId, [item.id], userId).catch(error => {
           console.error('Auto-preparation background error:', error);
         });
       } catch (error) {

@@ -3,18 +3,22 @@
  */
 
 import { NextResponse } from 'next/server';
-import { findItemById, loadSession, loadItems } from '@/lib/services/workspace-store';
+import { loadOwnedItemWithDrafts, findOtherReadyItems } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    // VAL-AUTH-006: Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { itemId } = await params;
 
-    // Load item across all sessions
-    const item = await findItemById(itemId);
+    // VAL-AUTH-006: Load item only if owned by current user
+    const item = await loadOwnedItemWithDrafts(userId, itemId);
 
+    // VAL-AUTH-008: Return blocked state without leaking details
     if (!item) {
       return NextResponse.json(
         { error: 'Item not found' },
@@ -30,21 +34,8 @@ export async function GET(
       );
     }
 
-    // Load other ready items from the same session for next-video navigation
-    const session = await loadSession(item.sessionId);
-    const otherReadyItems: Array<{ id: string; title: string }> = [];
-
-    if (session) {
-      const allItems = await loadItems(item.sessionId);
-      for (const sessionItem of allItems) {
-        if (sessionItem.id !== itemId && sessionItem.prepStatus === 'ready') {
-          otherReadyItems.push({
-            id: sessionItem.id,
-            title: sessionItem.source.title,
-          });
-        }
-      }
-    }
+    // VAL-AUTH-007: Load other ready items from owned session only
+    const otherReadyItems = await findOtherReadyItems(userId, item.sessionId, itemId);
 
     // Return item data for studio plus other ready items
     return NextResponse.json({ item, otherReadyItems });

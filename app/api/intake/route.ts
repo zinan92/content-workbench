@@ -6,11 +6,15 @@ import { NextResponse } from 'next/server';
 import { classifyDouyinLink } from '@/lib/domain/links';
 import { generateSessionId } from '@/lib/domain/ids';
 import type { Session } from '@/lib/domain/types';
-import { saveSession } from '@/lib/services/workspace-store';
+import { saveSession } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 import { getDiscoveryAdapter, DiscoveryResolutionError } from '@/lib/adapters/discovery-adapter';
 
 export async function POST(request: Request) {
   try {
+    // VAL-AUTH-004: Require authentication for intake
+    const userId = await requireUserId();
+    
     // Parse request body
     const body = await request.json();
     const { link } = body;
@@ -89,8 +93,8 @@ export async function POST(request: Request) {
       updatedAt: now,
     };
 
-    // Save session
-    await saveSession(session);
+    // VAL-AUTH-004: Save session with owner association
+    await saveSession(session, userId);
 
     // Determine next route based on input type
     const nextRoute = `/sessions/${sessionId}`;

@@ -6,7 +6,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { loadSession, saveSession } from '@/lib/services/workspace-store';
+import { loadOwnedSession, updateSessionPhase } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 import { prepareItems } from '@/lib/services/prepare-service';
 
 export async function POST(
@@ -14,10 +15,12 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    // VAL-AUTH-011: Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { sessionId } = await params;
 
-    // Load session
-    const session = await loadSession(sessionId);
+    // Load session (ownership enforced)
+    const session = await loadOwnedSession(userId, sessionId);
     if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -33,21 +36,22 @@ export async function POST(
       );
     }
 
-    // Update session workflow phase to preparation
-    session.workflowPhase = 'preparation';
-    session.updatedAt = new Date().toISOString();
-    await saveSession(session);
+    // VAL-AUTH-011: Update session workflow phase to preparation (ownership enforced)
+    await updateSessionPhase(userId, sessionId, 'preparation');
 
     // Start preparation for selected items (async, fire and forget)
     // The preparation runs in background and updates item statuses
-    prepareItems(sessionId, session.selectedIds).catch(error => {
+    prepareItems(sessionId, session.selectedIds, userId).catch(error => {
       console.error('Preparation background error:', error);
     });
+
+    // Reload session after phase update
+    const updatedSession = await loadOwnedSession(userId, sessionId);
 
     // Return immediately with prepared item IDs (scoped to selection only)
     return NextResponse.json({
       preparedIds: session.selectedIds,
-      session,
+      session: updatedSession,
     });
 
   } catch (error) {

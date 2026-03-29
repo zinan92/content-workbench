@@ -6,7 +6,7 @@ import type { SessionId, ContentItem } from '../domain/types';
 import { generateContentItemId } from '../domain/ids';
 import { calculateSimpleScore, isRecommended } from '../domain/scoring';
 import { getDiscoveryAdapter } from '../adapters/discovery-adapter';
-import { loadSession, saveSession, saveItem } from './workspace-store';
+import { loadOwnedSession, saveSession, saveItem } from '@/lib/repositories';
 
 /**
  * Discovery result including hydrated items and partial flag
@@ -22,12 +22,16 @@ export interface DiscoveryServiceResult {
  * This runs discovery via the adapter, creates ContentItem records with
  * scores and recommendations, saves them to the workspace, and updates
  * the session's candidateIds.
+ * 
+ * @param sessionId - The session ID to hydrate
+ * @param userId - The user ID who owns this session
  */
 export async function discoverAndHydrateSession(
-  sessionId: SessionId
+  sessionId: SessionId,
+  userId: string
 ): Promise<DiscoveryServiceResult> {
-  // Load the session
-  const session = await loadSession(sessionId);
+  // Load the session (ownership enforced)
+  const session = await loadOwnedSession(userId, sessionId);
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
   }
@@ -69,14 +73,14 @@ export async function discoverAndHydrateSession(
     };
 
     items.push(item);
-    await saveItem(item);
+    await saveItem(item, userId);
   }
 
   // Update session with candidateIds and partial flag
   session.candidateIds = items.map(item => item.id);
   session.isPartialDiscovery = discoveryResult.isPartial;
   session.updatedAt = now;
-  await saveSession(session);
+  await saveSession(session, userId);
 
   return {
     items,
@@ -89,12 +93,16 @@ export async function discoverAndHydrateSession(
  * 
  * This resolves the video metadata via the adapter, creates a single ContentItem,
  * saves it to the workspace, and updates the session's candidateIds and selectedIds.
+ * 
+ * @param sessionId - The session ID to hydrate
+ * @param userId - The user ID who owns this session
  */
 export async function hydrateSingleVideoSession(
-  sessionId: SessionId
+  sessionId: SessionId,
+  userId: string
 ): Promise<ContentItem> {
-  // Load the session
-  const session = await loadSession(sessionId);
+  // Load the session (ownership enforced)
+  const session = await loadOwnedSession(userId, sessionId);
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
   }
@@ -133,13 +141,13 @@ export async function hydrateSingleVideoSession(
   };
 
   // Save the item
-  await saveItem(item);
+  await saveItem(item, userId);
 
   // Update session with the item ID in both candidateIds and selectedIds
   session.candidateIds = [itemId];
   session.selectedIds = [itemId];
   session.updatedAt = now;
-  await saveSession(session);
+  await saveSession(session, userId);
 
   return item;
 }

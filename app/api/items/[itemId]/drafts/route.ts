@@ -3,8 +3,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { findItemById } from '@/lib/services/workspace-store';
-import { updatePlatformDraft } from '@/lib/services/workspace-store';
+import { loadOwnedItemWithDrafts, updatePlatformDraft } from '@/lib/repositories';
+import { requireUserId } from '@/lib/auth/server';
 import type { Platform, PlatformDraft } from '@/lib/domain/types';
 
 const VALID_PLATFORMS: Platform[] = ['xiaohongshu', 'bilibili', 'video-channel', 'wechat-oa', 'x'];
@@ -18,10 +18,12 @@ export async function GET(
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    // Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { itemId } = await params;
 
-    // Load item across all sessions
-    const item = await findItemById(itemId);
+    // Load item (ownership enforced)
+    const item = await loadOwnedItemWithDrafts(userId, itemId);
 
     if (!item) {
       return NextResponse.json(
@@ -51,10 +53,12 @@ export async function POST(
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    // VAL-AUTH-011: Require authentication and enforce ownership
+    const userId = await requireUserId();
     const { itemId } = await params;
 
-    // Load item across all sessions
-    const item = await findItemById(itemId);
+    // Load item (ownership enforced)
+    const item = await loadOwnedItemWithDrafts(userId, itemId);
 
     if (!item) {
       return NextResponse.json(
@@ -93,8 +97,8 @@ export async function POST(
       lastUpdated: new Date().toISOString(),
     };
 
-    // Save to workspace store
-    await updatePlatformDraft(item.sessionId, itemId, draft);
+    // VAL-AUTH-011: Save draft (ownership enforced)
+    await updatePlatformDraft(userId, item.sessionId, itemId, draft);
 
     return NextResponse.json({ success: true });
 
