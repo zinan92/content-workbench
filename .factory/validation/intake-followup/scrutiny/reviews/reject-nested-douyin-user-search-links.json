@@ -1,0 +1,15 @@
+{
+  "featureId": "reject-nested-douyin-user-search-links",
+  "reviewedAt": "2026-03-29T03:35:00.000Z",
+  "commitId": "12ea40d",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Clean, minimal fix that correctly narrows /user/ pathname matching from a prefix check to an exact 2-segment match. The implementation splits the pathname, filters empty segments, and only classifies as creator-profile when exactly ['user', '<id>'] is present. All other /user/* nested paths fall through to unsupported. Tests cover the exact reported VAL-INTAKE-007 URL, additional nested-path variants, and the intake route layer. Existing canonical creator-profile tests continue to pass, confirming no regression. The commit is well-scoped: 3 files changed, 71 insertions, 1 deletion.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Pass. The implementation correctly rejects nested Douyin user-search URLs (e.g. /user/self/search/...) by tightening the /user/ pathname classifier from a prefix match to an exact 2-segment match. Five new tests cover both domain classification and intake route rejection for the reported URL and related nested-path variants. The worker followed TDD procedure, verified with agent-browser, and ran the full validation suite. No code issues, no shared-state gaps identified."
+}
