@@ -1,0 +1,71 @@
+{
+  "groupId": "nested-search-intake",
+  "testedAt": "2026-03-29T00:00:00.000Z",
+  "isolation": {
+    "appUrl": "http://127.0.0.1:3100",
+    "browserSession": "d8ecef5ae755",
+    "credentials": "none"
+  },
+  "toolsUsed": ["agent-browser", "curl"],
+  "assertions": [
+    {
+      "id": "VAL-INTAKE-007",
+      "title": "Nested Douyin user-search pages stay unsupported at intake",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to http://127.0.0.1:3100 (intake page)",
+          "expected": "Intake form displayed with Douyin Link input and disabled Continue button",
+          "observed": "Intake form displayed with textbox 'Douyin Link' and disabled 'Continue' button"
+        },
+        {
+          "action": "Fill input with nested user-search URL: https://www.douyin.com/user/self/search/%E6%85%A2%E5%AD%A6ai?aid=8361ee96-5a5c-46a8-a327-6261655fc3f2&modal_id=7621978881326583092&type=general",
+          "expected": "URL appears in input field, Continue button becomes enabled",
+          "observed": "URL populated in input field, Continue button enabled"
+        },
+        {
+          "action": "Click Continue to submit the form",
+          "expected": "Page stays on intake, shows unsupported-scope error, preserves input value",
+          "observed": "Page remained on intake (URL: http://127.0.0.1:3100/), input value preserved, 'Unsupported Link' error displayed"
+        },
+        {
+          "action": "Verify page URL remains /",
+          "expected": "URL is http://127.0.0.1:3100/",
+          "observed": "URL is http://127.0.0.1:3100/"
+        },
+        {
+          "action": "Verify input value is preserved",
+          "expected": "Input still contains the nested user-search URL",
+          "observed": "Input value confirmed as the full nested user-search URL"
+        },
+        {
+          "action": "Verify unsupported-scope V1 error message is shown",
+          "expected": "Clear error message indicating the link is not supported",
+          "observed": "Heading 'Unsupported Link' with message 'This link is not supported. Please provide a Douyin creator profile or single video link.' displayed with red error icon"
+        },
+        {
+          "action": "Verify POST /api/intake returns rejection (via curl)",
+          "expected": "4xx response with unsupported-scope rejection",
+          "observed": "POST /api/intake -> 400 with body: {\"success\":false,\"error\":\"This link is not supported. Please provide a Douyin creator profile or single video link.\",\"inputType\":\"unsupported\"}"
+        },
+        {
+          "action": "Check console for errors",
+          "expected": "No console errors",
+          "observed": "No console errors"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "intake-followup/nested-search-intake/VAL-INTAKE-007-initial-state.png",
+          "intake-followup/nested-search-intake/VAL-INTAKE-007-unsupported-error.png"
+        ],
+        "consoleErrors": "none",
+        "network": "POST /api/intake -> 400 {\"success\":false,\"error\":\"This link is not supported. Please provide a Douyin creator profile or single video link.\",\"inputType\":\"unsupported\"}"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 1 assertion: 1 passed. VAL-INTAKE-007 confirmed that nested Douyin user-search URLs are correctly rejected at intake with a clear unsupported-scope error, preserved input value, and 400 API response."
+}
