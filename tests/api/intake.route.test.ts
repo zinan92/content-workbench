@@ -168,6 +168,41 @@ describe('POST /api/intake', () => {
       expect(data.success).toBe(false);
       expect(data.inputType).toBe('unsupported');
     });
+
+    // VAL-INTAKE-007: Nested Douyin user-search pages stay unsupported at intake
+    it('returns 400 for nested user-search URLs with preserved input', async () => {
+      const nestedUrl = 'https://www.douyin.com/user/self/search/%E6%85%A2%E5%AD%A6ai?aid=8361ee96-5a5c-46a8-a327-6261655fc3f2&modal_id=7621978881326583092&type=general';
+      const request = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link: nestedUrl }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data).toMatchObject({
+        success: false,
+        error: expect.stringContaining('supported'),
+        inputType: 'unsupported',
+      });
+    });
+
+    it('returns 400 for other nested user paths like /user/self/following', async () => {
+      const request = new Request('http://localhost:3100/api/intake', {
+        method: 'POST',
+        body: JSON.stringify({ link: 'https://www.douyin.com/user/self/following' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.inputType).toBe('unsupported');
+    });
   });
 
   describe('request validation', () => {

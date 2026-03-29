@@ -49,8 +49,25 @@ export function classifyDouyinLink(input: string): DouyinLinkType {
   // Examples:
   // - https://www.douyin.com/user/MS4wLjABAAAA...
   // - https://v.douyin.com/user/ABC123/
+  // 
+  // Reject nested user paths that are out-of-scope for V1:
+  // - /user/self/search/... (user search pages)
+  // - /user/self/following
+  // - /user/settings/...
+  // 
+  // Only accept canonical creator profile URLs: /user/<id> or /user/<id>/
   if (pathname.startsWith('/user/')) {
-    return 'creator-profile';
+    // Split pathname into segments
+    const segments = pathname.split('/').filter(s => s.length > 0);
+    
+    // Valid creator profile: exactly 2 segments like ['user', 'MS4wLjABAAAA...']
+    // or ['user', 'ABC123']
+    if (segments.length === 2 && segments[0] === 'user') {
+      return 'creator-profile';
+    }
+    
+    // Any other /user/* paths are unsupported (nested paths like /user/self/search/...)
+    return 'unsupported';
   }
 
   // Match single-video patterns

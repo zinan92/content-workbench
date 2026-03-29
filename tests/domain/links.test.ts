@@ -70,6 +70,24 @@ describe('classifyDouyinLink', () => {
       const result = classifyDouyinLink('https://www.douyin.com/discover');
       expect(result).toBe('unsupported');
     });
+
+    // VAL-INTAKE-007: Nested Douyin user-search pages stay unsupported
+    it('returns unsupported for nested user-search URLs with /user/self/search/', () => {
+      const result = classifyDouyinLink(
+        'https://www.douyin.com/user/self/search/%E6%85%A2%E5%AD%A6ai?aid=8361ee96-5a5c-46a8-a327-6261655fc3f2&modal_id=7621978881326583092&type=general'
+      );
+      expect(result).toBe('unsupported');
+    });
+
+    it('returns unsupported for other nested user paths', () => {
+      const result = classifyDouyinLink('https://www.douyin.com/user/self/following');
+      expect(result).toBe('unsupported');
+    });
+
+    it('returns unsupported for user settings-like paths', () => {
+      const result = classifyDouyinLink('https://www.douyin.com/user/settings/profile');
+      expect(result).toBe('unsupported');
+    });
   });
 
   describe('adversarial hostname cases (security)', () => {
