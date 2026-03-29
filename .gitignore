@@ -49,3 +49,4 @@ data/workspaces/**/*.mp3
 data/workspaces/**/*.wav
 data/workspaces/**/*.txt
 !data/workspaces/.gitkeep
+.vercel

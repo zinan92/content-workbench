@@ -17,8 +17,8 @@ Environment variables, external dependencies, and setup notes for the hosted pro
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `R2_ACCOUNT_ID`
 - `R2_BUCKET_NAME`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
+- `R2_KEY_ID`
+- `R2_KEY_SECRET`
 - `WORKER_SHARED_SECRET` (or equivalent signed handoff secret if the web app must authenticate to the worker)
 
 ### Worker variables
@@ -26,8 +26,8 @@ Environment variables, external dependencies, and setup notes for the hosted pro
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `R2_ACCOUNT_ID`
 - `R2_BUCKET_NAME`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
+- `R2_KEY_ID`
+- `R2_KEY_SECRET`
 - any downloader/transcription credentials introduced during implementation
 
 ## External Services
