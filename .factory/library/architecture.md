@@ -1,179 +1,63 @@
 # Architecture
 
-High-level system shape for Content Replication Workbench V1.
+Hosted production architecture for Content Workbench.
 
-**What belongs here:** major components, relationships, data flow, invariants, adapter boundaries.
-**What does NOT belong here:** line-by-line implementation details.
+**What belongs here:** major components, relationships, data flows, invariants.
+**What does NOT belong here:** low-level implementation trivia, route-by-route code notes.
 
 ---
 
-## System Shape
+## High-Level System
 
-The product is a thin standalone Next.js workbench with four operator-facing surfaces:
+The system is split into four responsibilities:
 
-1. **Link Intake**
-2. **Candidate Review**
-3. **Asset Preparation Status**
-4. **Single Video Studio**
+1. **Vercel web app** — renders the product UI, handles authenticated browser requests, enqueues durable work, and reads owner-scoped state.
+2. **Supabase** — system of record for users, sessions, items, drafts, checklist state, and preparation jobs.
+3. **Cloudflare R2** — stores large binary artifacts and durable prepared outputs.
+4. **Railway worker** — runs long-lived preparation jobs, calls adapters/downloader/transcription logic, uploads outputs, and updates job status.
 
-The app is local-first and single-operator. Its core responsibility is coordinating browser workflow and persisted workspace state, not running distributed jobs or acting as an automation platform.
+## Core Domain Objects
 
-## Core Layers
+- **User** — authenticated owner of all hosted workbench state.
+- **Workbench session** — one creator-profile or single-video workflow owned by exactly one user.
+- **Content item** — one source video within a session, with review metadata, preparation state, and studio state.
+- **Platform draft** — per-item, per-platform editable draft/checklist state.
+- **Preparation job** — durable background work record for preparing one content item.
+- **Artifact metadata** — references to hosted outputs stored in R2.
 
-### UI / Route Layer
+## Ownership Invariants
 
-- `app/` pages and route handlers
-- Thin request/response layer only
-- Reads and writes session/item state through services
+- Every session belongs to exactly one user.
+- Every item belongs to exactly one session and therefore exactly one user.
+- Every draft/checklist mutation is scoped by owner + item + platform.
+- Non-owners must not be able to read or mutate another user's session, item, draft, or job state.
 
-### Domain Layer
+## Workflow Invariants
 
-- `lib/domain/*`
-- Pure logic:
-  - Douyin link classification
-  - deterministic scoring/recommendation
-  - content item / session / draft schemas
-  - status enums and state-shaping helpers
+- Creator-profile flow remains: intake -> candidate review -> preparation -> studio.
+- Single-video flow remains: intake -> preparation -> studio.
+- Candidate review must not start preparation until the operator explicitly acts.
+- Only ready items may open studio.
+- One failed preparation item must not block ready siblings.
 
-### Service Layer
+## Persistence Invariants
 
-- `lib/services/*`
-- Orchestrates domain logic + persistence + adapters
-- Owns session creation, candidate hydration, preparation lifecycle state changes, and platform-draft persistence
+- Postgres is the source of truth for sessions, items, drafts, checklist state, and job state.
+- R2 stores large artifacts; Postgres stores only durable metadata/keys/URLs needed by the app.
+- Local filesystem state may exist temporarily during migration but must not remain the primary persistence model.
 
-### Adapter Layer
+## Job Processing Model
 
-- `lib/adapters/*`
-- Encapsulates unstable external capability repos
-- Expected adapters:
-  - discovery adapter around `MediaCrawler`
-  - preparation adapter around `douyin-downloader-1`
-- Default V1 mode may be fixture-backed, but the adapter contract must stay stable so real subprocess integration can replace fixtures later without redesign
+- Web requests create or queue preparation work; they do not own durable processing.
+- Railway worker consumes queued preparation jobs.
+- Worker updates job state through durable transitions such as `pending -> downloading -> transcribing -> ready|failed`.
+- Retries are item-scoped and idempotent.
+- Repeated reads or refreshes must not duplicate items or jobs.
 
-### Persistence Layer
+## Studio Model
 
-- Repo-local JSON under `data/workspaces/`
-- Source of truth for:
-  - sessions
-  - discovered candidate items
-  - selected item ids
-  - prep status and artifact paths
-  - per-platform draft/checklist state
-
-## Primary Data Model
-
-### Session
-
-A session begins at intake and tracks:
-
-- input link + classified input type
-- candidate rows for creator flow
-- selected item ids
-- current workflow phase
-- related content-item ids
-
-### Content Item
-
-Each discovered/prepared video has a stable record including:
-
-- source metadata and engagement metrics
-- simple score + recommended flag
-- prep status
-- persisted artifact paths
-- per-platform drafts/checklists
-
-The canonical preparation status values are:
-
-- `pending`
-- `downloading`
-- `transcribing`
-- `ready`
-- `failed`
-
-Allowed transitions are intentionally simple:
-
-- `pending -> downloading`
-- `downloading -> transcribing`
-- `downloading -> ready` (if no transcription step is required)
-- `transcribing -> ready`
-- `downloading|transcribing -> failed`
-- `failed -> pending` (retry path)
-
-Studio access is allowed only from `ready`.
-
-### Platform Drafts
-
-Per-platform editable state is stored independently for:
-
-- XiaoHongShu
-- Bilibili
-- Video Channel
-- WeChat Official Account
-- X
-
-Each platform draft owns its own editable fields and checklist state. One platform tab must not overwrite another.
-
-## Canonical User Flows
-
-### Creator Flow
-
-`intake -> classify creator link -> discover metadata -> candidate review -> manual selection -> prepare selected only -> ready item -> studio`
-
-Creator discovery may be partial. Partial discovery is still a valid review state as long as the operator sees the rows that were fetched plus a clear partial-results message.
-
-### Single-Video Flow
-
-`intake -> classify single-video link -> create one-item session -> prepare item -> ready item -> studio`
-
-## Key Invariants
-
-- **Discover first, prepare later** for creator-profile input
-- **Single-video input skips candidate review**
-- **Only selected creator items are prepared**
-- **Preparation is item-isolated**: one item failure must not block others
-- **Studio is ready-item-only** and non-ready/direct invalid access resolves to a recoverable blocked state
-- **Platform tabs are isolated**: one platform tab failure must not block others
-- **Manual editing and manual completion are always available**
-- **Persisted local state survives refresh/navigation**
-
-## External Capability Boundaries
-
-### Discovery
-
-- Reuses `MediaCrawler` capabilities through an adapter boundary
-- Output needed by the app is lightweight candidate metadata, not media downloads
-
-### Preparation
-
-- Reuses `douyin-downloader-1` through an adapter boundary
-- Preparation writes local outputs to disk
-- The workbench reads those saved outputs and surfaces their state in the browser
-
-Expected canonical artifact fields on a prepared item:
-
-- `videoPath`
-- `transcriptPath`
-- `archivePath`
-- `analysisPath`
-- optional cover/thumbnail or auxiliary media notes
-
-The adapter may source those from fixtures or real local subprocess output, but the item record exposed to the app should normalize them into a stable item-level artifact contract.
-
-## Studio Navigation Helpers
-
-When applicable, the studio may expose lightweight next-step affordances:
-
-- `Next platform`
-- `Next ready video`
-
-These are navigation helpers inside the studio workspace, not a separate orchestration system.
-
-## Non-Goals Encoded In The Architecture
-
-- No database
-- No queue/worker system
-- No orchestration dashboard
-- No automatic publishing
-- No AI dependency for recommendation logic
-
-The architecture should remain thin enough that future AI augmentation or stronger subprocess integration can be added as new adapters/services rather than by restructuring the whole app.
+- Studio opens only for a ready owned item.
+- The left panel shows persisted source references.
+- The right panel shows per-platform editable drafts.
+- Draft and checklist state persist durably across reload, revisit, sign-out/sign-in, and cross-page returns for the same owner.
+- Next-step affordances must remain within the operator's owned ready work.

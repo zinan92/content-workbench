@@ -1,48 +1,50 @@
 # Environment
 
-Environment variables, external dependencies, and setup notes.
+Environment variables, external dependencies, and setup notes for the hosted production architecture.
 
-**What belongs here:** runtime targets, external repo paths, adapter modes, optional keys, platform-specific setup.
+**What belongs here:** env vars, external services, setup notes, credential boundaries.
 **What does NOT belong here:** service ports/commands (use `.factory/services.yaml`).
 
 ---
 
-## Runtime Target
+## Required Hosted Environment Variables
 
-- Repo target: `Node 22 LTS`
-- Current machine default observed during planning: `Node v25.8.1`
-- Workers should pin repo-local runtime files early and report compatibility blockers immediately if the current shell cannot run the stack reliably.
+### Browser-safe web variables
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-## External Capability Repos
+### Server-only web variables
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET_NAME`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `WORKER_SHARED_SECRET` (or equivalent signed handoff secret if the web app must authenticate to the worker)
 
-- `MEDIACRAWLER_ROOT=/Users/wendy/work/content-co/MediaCrawler`
-- `DOUYIN_DOWNLOADER_ROOT=/Users/wendy/work/content-co/douyin-downloader-1`
-- `SPEC_HOST_ROOT=/Users/wendy/work/content-co/cc-control-tower`
+### Worker variables
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET_NAME`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- any downloader/transcription credentials introduced during implementation
 
-These repos are read-only references/capabilities. Do not modify them from this mission.
+## External Services
 
-## Adapter Modes
+- **Supabase** — Auth, Postgres, RLS
+- **Cloudflare R2** — artifact storage
+- **Railway** — worker hosting
+- **Vercel** — web hosting
 
-Preferred V1 default:
+## Security Notes
 
-- `CONTENT_WORKBENCH_ADAPTER_MODE=fixtures`
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` or any R2 secret to the browser.
+- Buckets should remain private by default; downloads should use signed access or controlled server paths.
+- Secrets must not be committed; use local env files and platform env configuration only.
 
-Optional future/local-only modes if stabilized:
+## Migration Notes
 
-- `CONTENT_WORKBENCH_DISCOVERY_MODE=fixtures|mediacrawler`
-- `CONTENT_WORKBENCH_PREP_MODE=fixtures|downloader`
-
-If both split knobs are present, they override the combined mode for their respective adapter only.
-
-The product contract is persisted local output. The browser should read saved workspace/artifact state, not stream downloader subprocess output directly.
-
-## Optional Secrets / API Keys
-
-- `OPENAI_API_KEY` is optional and only relevant if the real downloader transcription provider uses the OpenAI API.
-- V1 must remain usable without this key by relying on fixture-backed prep or other already-stable local outputs.
-
-## Local Data Expectations
-
-- Session/workspace JSON lives under `data/workspaces/`
-- Prepared local artifacts are referenced by stable paths from session/item records
-- Do not introduce a database for V1
+- The repo currently contains a local-first baseline with filesystem persistence under `data/workspaces`.
+- Hosted migration work should remove application dependence on repo-local persistence rather than extending it.
+- End-to-end validation for the new mission requires real hosted credentials to be configured before final milestones can pass.
