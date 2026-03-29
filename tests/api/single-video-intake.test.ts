@@ -15,12 +15,15 @@ import { POST as intakePost } from '@/app/api/intake/route';
 import { GET as sessionGet } from '@/app/api/sessions/[sessionId]/route';
 import { loadItem } from '@/lib/services/workspace-store';
 import type { Session, ContentItem } from '@/lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
 
 let testDataDir: string;
+let authCleanup: () => void;
 
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'single-video-test-'));
   process.env.DATA_ROOT = testDataDir;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -30,6 +33,7 @@ afterEach(async () => {
     await rm(testDataDir, { recursive: true, force: true });
   }
   delete process.env.DATA_ROOT;
+  authCleanup();
 });
 
 describe('Single-video intake and preparation flow', () => {

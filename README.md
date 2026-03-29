@@ -15,20 +15,23 @@ This standalone tool helps content operators replicate Douyin videos to XiaoHong
 3. **Asset Preparation Status** — Track download/transcription progress, handle isolated per-item failures, retry when needed
 4. **Single Video Studio** — Manual editing workspace with source-of-truth reference panel plus per-platform draft fields and checklists
 
-**Target Platforms (V1):**
-- XiaoHongShu (primary, default tab)
-- Bilibili
-- WeChat Video Channel
-- WeChat Official Account
-- X
+**Target Platforms (V1) with minimum outputs:**
+- **XiaoHongShu** (primary, default tab) — search-keyword title, XHS caption draft, cover/keyframe candidate
+- **Bilibili** — repost-ready title and description
+- **WeChat Video Channel** — repost-ready title and description
+- **WeChat Official Account** — article title and text draft
+- **X** — short-form post draft
 
 **Key V1 Boundaries:**
 - ✅ Repo-local JSON persistence (no database)
+- ✅ Local-first — no hosted auth required (works without Supabase)
 - ✅ Manual selection and editing at every stage
 - ✅ Isolated per-item and per-platform failure handling
+- ✅ Candidate table includes view/play count as a metric
 - ❌ No automatic posting/publishing
 - ❌ No AI-generated recommendations (simple transparent scoring only)
 - ❌ No live external queues or worker daemons
+- ❌ No hosted auth/Supabase/R2/Railway required for V1
 
 ## Tech Stack
 

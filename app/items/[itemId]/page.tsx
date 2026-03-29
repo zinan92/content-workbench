@@ -4,13 +4,69 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { ContentItem, Platform } from '@/lib/domain/types';
 
-// Platform display metadata
-const PLATFORMS: Array<{ id: Platform; label: string; description: string }> = [
-  { id: 'xiaohongshu', label: 'XiaoHongShu', description: 'Little Red Book' },
-  { id: 'bilibili', label: 'Bilibili', description: 'Video platform' },
-  { id: 'video-channel', label: 'Video Channel', description: 'WeChat Video' },
-  { id: 'wechat-oa', label: 'WeChat OA', description: 'Official Account' },
-  { id: 'x', label: 'X', description: 'Twitter/X' },
+// Platform display metadata and minimum output guidance
+const PLATFORMS: Array<{
+  id: Platform;
+  label: string;
+  description: string;
+  minimumOutputs: string[];
+  checklistItems: Array<{ key: string; label: string }>;
+}> = [
+  {
+    id: 'xiaohongshu',
+    label: 'XiaoHongShu',
+    description: 'Search-keyword title, adapted caption, cover/keyframe candidate',
+    minimumOutputs: ['Search-oriented title', 'XHS caption draft', 'Cover / keyframe candidate'],
+    checklistItems: [
+      { key: 'search-title-written', label: 'Search-keyword title written' },
+      { key: 'caption-adapted', label: 'Caption adapted for XHS' },
+      { key: 'cover-selected', label: 'Cover / keyframe selected' },
+      { key: 'ready-to-publish', label: 'Ready to publish' },
+    ],
+  },
+  {
+    id: 'bilibili',
+    label: 'Bilibili',
+    description: 'Repost-ready title and description',
+    minimumOutputs: ['Repost-ready title', 'Video description'],
+    checklistItems: [
+      { key: 'title-updated', label: 'Title updated' },
+      { key: 'description-written', label: 'Description written' },
+      { key: 'ready-to-publish', label: 'Ready to publish' },
+    ],
+  },
+  {
+    id: 'video-channel',
+    label: 'Video Channel',
+    description: 'Repost-ready title and description for WeChat Video',
+    minimumOutputs: ['Repost-ready title', 'Video description'],
+    checklistItems: [
+      { key: 'title-updated', label: 'Title updated' },
+      { key: 'description-written', label: 'Description written' },
+      { key: 'ready-to-publish', label: 'Ready to publish' },
+    ],
+  },
+  {
+    id: 'wechat-oa',
+    label: 'WeChat OA',
+    description: 'Article / text draft for Official Account',
+    minimumOutputs: ['Article title', 'Article body / text draft'],
+    checklistItems: [
+      { key: 'title-updated', label: 'Article title set' },
+      { key: 'body-drafted', label: 'Article body drafted' },
+      { key: 'ready-to-publish', label: 'Ready to publish' },
+    ],
+  },
+  {
+    id: 'x',
+    label: 'X',
+    description: 'Short-form post draft',
+    minimumOutputs: ['Short-form post text'],
+    checklistItems: [
+      { key: 'post-drafted', label: 'Post text drafted' },
+      { key: 'ready-to-publish', label: 'Ready to publish' },
+    ],
+  },
 ];
 
 export default function StudioPage() {
@@ -22,12 +78,12 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<Platform>('xiaohongshu');
-  const [drafts, setDrafts] = useState<Record<Platform, { title: string; body: string; coverNotes: string }>>({
-    xiaohongshu: { title: '', body: '', coverNotes: '' },
-    bilibili: { title: '', body: '', coverNotes: '' },
-    'video-channel': { title: '', body: '', coverNotes: '' },
-    'wechat-oa': { title: '', body: '', coverNotes: '' },
-    x: { title: '', body: '', coverNotes: '' },
+  const [drafts, setDrafts] = useState<Record<Platform, { title: string; body: string; coverNotes: string; searchTitle: string; keyframeCandidates: string }>>({
+    xiaohongshu: { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' },
+    bilibili: { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' },
+    'video-channel': { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' },
+    'wechat-oa': { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' },
+    x: { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' },
   });
   const [checklists, setChecklists] = useState<Record<Platform, Record<string, boolean>>>({
     xiaohongshu: {},
@@ -59,12 +115,13 @@ export default function StudioPage() {
         setOtherReadyItems(data.otherReadyItems || []);
         
         // Initialize drafts and checklists from loaded item
-        const loadedDrafts: Record<Platform, { title: string; body: string; coverNotes: string }> = {
-          xiaohongshu: { title: '', body: '', coverNotes: '' },
-          bilibili: { title: '', body: '', coverNotes: '' },
-          'video-channel': { title: '', body: '', coverNotes: '' },
-          'wechat-oa': { title: '', body: '', coverNotes: '' },
-          x: { title: '', body: '', coverNotes: '' },
+        const emptyDraft = { title: '', body: '', coverNotes: '', searchTitle: '', keyframeCandidates: '' };
+        const loadedDrafts: Record<Platform, { title: string; body: string; coverNotes: string; searchTitle: string; keyframeCandidates: string }> = {
+          xiaohongshu: { ...emptyDraft },
+          bilibili: { ...emptyDraft },
+          'video-channel': { ...emptyDraft },
+          'wechat-oa': { ...emptyDraft },
+          x: { ...emptyDraft },
         };
         
         const loadedChecklists: Record<Platform, Record<string, boolean>> = {
@@ -82,6 +139,8 @@ export default function StudioPage() {
               title: platformDraft.title || '',
               body: platformDraft.body || '',
               coverNotes: platformDraft.coverNotes || '',
+              searchTitle: platformDraft.searchTitle || '',
+              keyframeCandidates: platformDraft.keyframeCandidates || '',
             };
             loadedChecklists[id] = platformDraft.checklist || {};
           }
@@ -99,7 +158,7 @@ export default function StudioPage() {
     loadItem();
   }, [itemId]);
 
-  const handleDraftChange = (platform: Platform, field: 'title' | 'body' | 'coverNotes', value: string) => {
+  const handleDraftChange = (platform: Platform, field: 'title' | 'body' | 'coverNotes' | 'searchTitle' | 'keyframeCandidates', value: string) => {
     setDrafts(prev => ({
       ...prev,
       [platform]: {
@@ -134,6 +193,8 @@ export default function StudioPage() {
           title: activeDraft.title,
           body: activeDraft.body,
           coverNotes: activeDraft.coverNotes,
+          searchTitle: activeDraft.searchTitle,
+          keyframeCandidates: activeDraft.keyframeCandidates,
           checklist: activeChecklist,
         }),
       });
@@ -211,6 +272,7 @@ export default function StudioPage() {
   }
 
   const activeDraft = drafts[activePlatform];
+  const currentPlatform = PLATFORMS.find(p => p.id === activePlatform);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -300,10 +362,16 @@ export default function StudioPage() {
             </div>
 
             {/* Engagement Metrics */}
-            {(item.source.likes !== undefined || item.source.comments !== undefined || item.source.shares !== undefined) && (
+            {(item.source.viewCount !== undefined || item.source.likes !== undefined || item.source.comments !== undefined || item.source.shares !== undefined) && (
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Engagement</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {item.source.viewCount !== undefined && (
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Views</p>
+                      <p className="text-sm font-medium text-gray-900 mt-1">{item.source.viewCount.toLocaleString()}</p>
+                    </div>
+                  )}
                   {item.source.likes !== undefined && (
                     <div className="text-center">
                       <p className="text-xs text-gray-500">Likes</p>
@@ -387,94 +455,186 @@ export default function StudioPage() {
           {/* Platform Editor */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto space-y-6">
+              {/* Platform header with minimum outputs guidance */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                  {PLATFORMS.find(p => p.id === activePlatform)?.label} Draft
+                  {currentPlatform?.label} Draft
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {PLATFORMS.find(p => p.id === activePlatform)?.description}
+                  {currentPlatform?.description}
                 </p>
+                <div className="mt-2 text-xs text-gray-400">
+                  Minimum outputs: {currentPlatform?.minimumOutputs.join(' · ')}
+                </div>
               </div>
 
-              {/* Title Field */}
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={activeDraft.title}
-                  onChange={(e) => handleDraftChange(activePlatform, 'title', e.target.value)}
-                  placeholder="Enter title for this platform..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              {/* XiaoHongShu-specific fields */}
+              {activePlatform === 'xiaohongshu' && (
+                <>
+                  <div>
+                    <label htmlFor="searchTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                      Search-Keyword Title
+                    </label>
+                    <input
+                      type="text"
+                      id="searchTitle"
+                      value={activeDraft.searchTitle}
+                      onChange={(e) => handleDraftChange(activePlatform, 'searchTitle', e.target.value)}
+                      placeholder="Rewrite the title toward search intent (keywords XHS users search for)..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      XHS discovery is search-driven. Include keywords users would search for.
+                    </p>
+                  </div>
 
-              {/* Body/Caption Field */}
-              <div>
-                <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
-                  {activePlatform === 'x' ? 'Tweet Text' : 'Caption / Description'}
-                </label>
-                <textarea
-                  id="body"
-                  value={activeDraft.body}
-                  onChange={(e) => handleDraftChange(activePlatform, 'body', e.target.value)}
-                  placeholder="Enter caption or description..."
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
+                      XHS Caption Draft
+                    </label>
+                    <textarea
+                      id="body"
+                      value={activeDraft.body}
+                      onChange={(e) => handleDraftChange(activePlatform, 'body', e.target.value)}
+                      placeholder="Adapt caption for XHS style (conversational, emoji-friendly, hashtag-rich)..."
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-              {/* Cover/Visual Notes */}
-              <div>
-                <label htmlFor="coverNotes" className="block text-sm font-medium text-gray-700 mb-2">
-                  Cover / Visual Notes
-                </label>
-                <textarea
-                  id="coverNotes"
-                  value={activeDraft.coverNotes}
-                  onChange={(e) => handleDraftChange(activePlatform, 'coverNotes', e.target.value)}
-                  placeholder="Notes about cover image, thumbnails, or other visual elements..."
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Manual notes for cover images, thumbnails, or visual considerations for this platform.
-                </p>
-              </div>
+                  <div>
+                    <label htmlFor="keyframeCandidates" className="block text-sm font-medium text-gray-700 mb-2">
+                      Keyframe / Cover Candidates
+                    </label>
+                    <textarea
+                      id="keyframeCandidates"
+                      value={activeDraft.keyframeCandidates}
+                      onChange={(e) => handleDraftChange(activePlatform, 'keyframeCandidates', e.target.value)}
+                      placeholder="Note timestamps or filenames of good keyframes for the XHS cover image..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      XHS covers drive click-through. Note the best frames from the source video.
+                    </p>
+                  </div>
 
-              {/* Checklist */}
+                  <div>
+                    <label htmlFor="coverNotes" className="block text-sm font-medium text-gray-700 mb-2">
+                      Cover Notes
+                    </label>
+                    <textarea
+                      id="coverNotes"
+                      value={activeDraft.coverNotes}
+                      onChange={(e) => handleDraftChange(activePlatform, 'coverNotes', e.target.value)}
+                      placeholder="Additional notes about the cover: text overlay ideas, crop guidance..."
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Bilibili / Video Channel: repost-ready title + description */}
+              {(activePlatform === 'bilibili' || activePlatform === 'video-channel') && (
+                <>
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                      Repost Title
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      value={activeDraft.title}
+                      onChange={(e) => handleDraftChange(activePlatform, 'title', e.target.value)}
+                      placeholder="Repost-ready title..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
+                      Video Description
+                    </label>
+                    <textarea
+                      id="body"
+                      value={activeDraft.body}
+                      onChange={(e) => handleDraftChange(activePlatform, 'body', e.target.value)}
+                      placeholder="Enter video description..."
+                      rows={6}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* WeChat OA: article draft */}
+              {activePlatform === 'wechat-oa' && (
+                <>
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                      Article Title
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      value={activeDraft.title}
+                      onChange={(e) => handleDraftChange(activePlatform, 'title', e.target.value)}
+                      placeholder="Article title for Official Account..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
+                      Article Body
+                    </label>
+                    <textarea
+                      id="body"
+                      value={activeDraft.body}
+                      onChange={(e) => handleDraftChange(activePlatform, 'body', e.target.value)}
+                      placeholder="Draft the article text adapted from the video content..."
+                      rows={12}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* X: short-form post */}
+              {activePlatform === 'x' && (
+                <div>
+                  <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
+                    Post Text
+                  </label>
+                  <textarea
+                    id="body"
+                    value={activeDraft.body}
+                    onChange={(e) => handleDraftChange(activePlatform, 'body', e.target.value)}
+                    placeholder="Short-form post text (concise, engaging)..."
+                    rows={4}
+                    maxLength={280}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {activeDraft.body.length}/280 characters
+                  </p>
+                </div>
+              )}
+
+              {/* Platform-specific checklist */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Checklist</h3>
                 <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={checklists[activePlatform]['cover-uploaded'] || false}
-                      onChange={(e) => handleChecklistChange(activePlatform, 'cover-uploaded', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Cover uploaded</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={checklists[activePlatform]['tags-added'] || false}
-                      onChange={(e) => handleChecklistChange(activePlatform, 'tags-added', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Tags added</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={checklists[activePlatform]['ready-to-publish'] || false}
-                      onChange={(e) => handleChecklistChange(activePlatform, 'ready-to-publish', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Ready to publish</span>
-                  </label>
+                  {currentPlatform?.checklistItems.map(({ key, label }) => (
+                    <label key={key} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={checklists[activePlatform][key] || false}
+                        onChange={(e) => handleChecklistChange(activePlatform, key, e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 

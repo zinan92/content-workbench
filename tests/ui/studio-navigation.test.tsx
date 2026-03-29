@@ -158,11 +158,11 @@ describe('StudioNavigation - Next Platform', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Edit XiaoHongShu draft
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     await user.clear(titleInput);
     await user.type(titleInput, 'Updated XHS Title');
 
@@ -183,7 +183,7 @@ describe('StudioNavigation - Next Platform', () => {
     });
 
     // Verify XHS draft was preserved
-    const xhsTitleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const xhsTitleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     expect(xhsTitleInput.value).toBe('Updated XHS Title');
   });
 });
@@ -332,11 +332,11 @@ describe('StudioNavigation - Next Ready Video', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Edit draft
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     await user.clear(titleInput);
     await user.type(titleInput, 'Modified Title');
 

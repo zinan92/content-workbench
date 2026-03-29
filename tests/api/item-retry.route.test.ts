@@ -15,13 +15,16 @@ import { POST } from '@/app/api/sessions/[sessionId]/prepare/[itemId]/retry/rout
 import { saveWorkspace, loadItem } from '@/lib/services/workspace-store';
 import { generateSessionId, generateContentItemId } from '@/lib/domain/ids';
 import type { Session, ContentItem, Workspace } from '@/lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
 
 let testDataDir: string;
+let authCleanup: () => void;
 
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'retry-test-'));
   process.env.DATA_ROOT = testDataDir;
   delete process.env.CONTENT_WORKBENCH_PREP_MODE;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -30,6 +33,7 @@ afterEach(async () => {
   }
   delete process.env.DATA_ROOT;
   delete process.env.CONTENT_WORKBENCH_PREP_MODE;
+  authCleanup();
 });
 
 function createTestSession(overrides?: Partial<Session>): Session {

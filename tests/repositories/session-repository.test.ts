@@ -10,6 +10,9 @@ import { generateSessionId } from '@/lib/domain/ids';
 import { fileExists } from '@/lib/utils/fs';
 import { getWorkspaceFile } from '@/lib/utils/paths';
 import { promises as fs } from 'fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // Mock feature flag to use filesystem persistence for tests
 vi.mock('@/lib/config/env', () => ({
@@ -20,20 +23,21 @@ vi.mock('@/lib/config/env', () => ({
   getSupabasePublishableKey: vi.fn(() => 'test-key'),
 }));
 
-// Import after mocking
-const { 
-  saveSession, 
-  loadOwnedSession, 
+// Import after mocking — use static import (vi.mock is hoisted above imports)
+import {
+  saveSession,
+  loadOwnedSession,
   findOwnedSessions,
   updateSessionSelection,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/session-repository');
+} from '@/lib/repositories/session-repository';
+
+let testDataDir: string;
 
 describe('session-repository', () => {
   const userId1 = 'user-123';
   const userId2 = 'user-456';
   const sessionId = generateSessionId();
-  
+
   const testSession: Session = {
     id: sessionId,
     inputLink: 'https://www.douyin.com/user/test',
@@ -46,27 +50,15 @@ describe('session-repository', () => {
   };
 
   beforeEach(async () => {
-    // Clean up test workspace before each test
-    const workspaceFile = getWorkspaceFile(sessionId);
-    try {
-      if (await fileExists(workspaceFile)) {
-        await fs.unlink(workspaceFile);
-      }
-    } catch {
-      // Ignore cleanup errors
-    }
+    testDataDir = await mkdtemp(join(tmpdir(), 'session-repo-test-'));
+    process.env.DATA_ROOT = testDataDir;
   });
 
   afterEach(async () => {
-    // Clean up test workspace after each test
-    const workspaceFile = getWorkspaceFile(sessionId);
-    try {
-      if (await fileExists(workspaceFile)) {
-        await fs.unlink(workspaceFile);
-      }
-    } catch {
-      // Ignore cleanup errors
+    if (testDataDir) {
+      await rm(testDataDir, { recursive: true, force: true });
     }
+    delete process.env.DATA_ROOT;
     vi.restoreAllMocks();
   });
 

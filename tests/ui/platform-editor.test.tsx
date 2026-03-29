@@ -116,14 +116,14 @@ describe('PlatformEditor - Draft Persistence', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Edit draft fields
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     await user.type(titleInput, 'My Draft Title');
 
-    const bodyInput = screen.getByLabelText(/Caption \/ Description/i) as HTMLTextAreaElement;
+    const bodyInput = screen.getByLabelText('XHS Caption Draft') as HTMLTextAreaElement;
     await user.type(bodyInput, 'My draft caption');
 
     // Click save
@@ -146,7 +146,7 @@ describe('PlatformEditor - Draft Persistence', () => {
     expect(lastPostCall).toBeDefined();
     const requestBody = JSON.parse(lastPostCall![1]!.body as string);
     expect(requestBody.platform).toBe('xiaohongshu');
-    expect(requestBody.title).toBe('My Draft Title');
+    expect(requestBody.searchTitle).toBe('My Draft Title');
     expect(requestBody.body).toBe('My draft caption');
   });
 
@@ -172,7 +172,7 @@ describe('PlatformEditor - Draft Persistence', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     const saveButton = screen.getByRole('button', { name: /Save Draft/i });
@@ -188,11 +188,11 @@ describe('PlatformEditor - Draft Persistence', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Edit XiaoHongShu draft
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     await user.type(titleInput, 'XHS Title');
 
     // Switch to Bilibili
@@ -212,7 +212,7 @@ describe('PlatformEditor - Draft Persistence', () => {
     });
 
     // Verify XHS draft was preserved
-    const xhsTitleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const xhsTitleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     expect(xhsTitleInput.value).toBe('XHS Title');
   });
 });
@@ -245,10 +245,10 @@ describe('PlatformEditor - Checklist State', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Cover uploaded/i)).toBeInTheDocument();
+      expect(screen.getByText(/Search-keyword title written/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Tags added/i)).toBeInTheDocument();
+    expect(screen.getByText(/Caption adapted for XHS/i)).toBeInTheDocument();
     expect(screen.getByText(/Ready to publish/i)).toBeInTheDocument();
   });
 
@@ -257,10 +257,10 @@ describe('PlatformEditor - Checklist State', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Cover uploaded/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Search-keyword title written/i)).toBeInTheDocument();
     });
 
-    const coverCheckbox = screen.getByLabelText(/Cover uploaded/i) as HTMLInputElement;
+    const coverCheckbox = screen.getByLabelText(/Search-keyword title written/i) as HTMLInputElement;
     expect(coverCheckbox.checked).toBe(false);
 
     await user.click(coverCheckbox);
@@ -288,11 +288,11 @@ describe('PlatformEditor - Checklist State', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Cover uploaded/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Search-keyword title written/i)).toBeInTheDocument();
     });
 
     // Check a checklist item
-    const coverCheckbox = screen.getByLabelText(/Cover uploaded/i);
+    const coverCheckbox = screen.getByLabelText(/Search-keyword title written/i);
     await user.click(coverCheckbox);
 
     // Save draft
@@ -307,7 +307,7 @@ describe('PlatformEditor - Checklist State', () => {
       
       expect(lastPostCall).toBeDefined();
       const requestBody = JSON.parse(lastPostCall![1]!.body as string);
-      expect(requestBody.checklist['cover-uploaded']).toBe(true);
+      expect(requestBody.checklist['search-title-written']).toBe(true);
     });
   });
 
@@ -316,11 +316,11 @@ describe('PlatformEditor - Checklist State', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Cover uploaded/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Search-keyword title written/i)).toBeInTheDocument();
     });
 
     // Check XiaoHongShu checklist items
-    const coverCheckbox = screen.getByLabelText(/Cover uploaded/i);
+    const coverCheckbox = screen.getByLabelText(/Search-keyword title written/i);
     await user.click(coverCheckbox);
 
     // Switch to Bilibili
@@ -332,8 +332,9 @@ describe('PlatformEditor - Checklist State', () => {
     });
 
     // Verify Bilibili checklist is independent (not checked)
-    const biliCoverCheckbox = screen.getByLabelText(/Cover uploaded/i) as HTMLInputElement;
-    expect(biliCoverCheckbox.checked).toBe(false);
+    // Bilibili has "Title updated" instead of XHS's "Search-keyword title written"
+    const biliTitleCheckbox = screen.getByLabelText(/Title updated/i) as HTMLInputElement;
+    expect(biliTitleCheckbox.checked).toBe(false);
 
     // Switch back to XiaoHongShu
     const xhsTab = screen.getByRole('button', { name: /XiaoHongShu/i });
@@ -344,7 +345,7 @@ describe('PlatformEditor - Checklist State', () => {
     });
 
     // Verify XHS checklist was preserved
-    const xhsCoverCheckbox = screen.getByLabelText(/Cover uploaded/i) as HTMLInputElement;
+    const xhsCoverCheckbox = screen.getByLabelText(/Search-keyword title written/i) as HTMLInputElement;
     expect(xhsCoverCheckbox.checked).toBe(true);
   });
 
@@ -358,8 +359,8 @@ describe('PlatformEditor - Checklist State', () => {
           title: 'Existing Title',
           body: 'Existing body',
           checklist: {
-            'cover-uploaded': true,
-            'tags-added': true,
+            'search-title-written': true,
+            'caption-adapted': true,
             'ready-to-publish': false,
           },
           lastUpdated: new Date().toISOString(),
@@ -376,12 +377,12 @@ describe('PlatformEditor - Checklist State', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      const coverCheckbox = screen.getByLabelText(/Cover uploaded/i) as HTMLInputElement;
+      const coverCheckbox = screen.getByLabelText(/Search-keyword title written/i) as HTMLInputElement;
       expect(coverCheckbox.checked).toBe(true);
     });
 
-    const tagsCheckbox = screen.getByLabelText(/Tags added/i) as HTMLInputElement;
-    expect(tagsCheckbox.checked).toBe(true);
+    const captionCheckbox = screen.getByLabelText(/Caption adapted for XHS/i) as HTMLInputElement;
+    expect(captionCheckbox.checked).toBe(true);
 
     const readyCheckbox = screen.getByLabelText(/Ready to publish/i) as HTMLInputElement;
     expect(readyCheckbox.checked).toBe(false);
@@ -423,18 +424,18 @@ describe('PlatformEditor - Sparse Content Support', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Verify fields are editable
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
     expect(titleInput.value).toBe('');
     expect(titleInput).not.toBeDisabled();
 
     await user.type(titleInput, 'Manual Title');
     expect(titleInput.value).toBe('Manual Title');
 
-    const bodyInput = screen.getByLabelText(/Caption \/ Description/i) as HTMLTextAreaElement;
+    const bodyInput = screen.getByLabelText('XHS Caption Draft') as HTMLTextAreaElement;
     expect(bodyInput.value).toBe('');
     expect(bodyInput).not.toBeDisabled();
 
@@ -467,11 +468,11 @@ describe('PlatformEditor - Sparse Content Support', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Cover uploaded/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Search-keyword title written/i)).toBeInTheDocument();
     });
 
     // Verify checklist items are functional
-    const coverCheckbox = screen.getByLabelText(/Cover uploaded/i) as HTMLInputElement;
+    const coverCheckbox = screen.getByLabelText(/Search-keyword title written/i) as HTMLInputElement;
     expect(coverCheckbox).not.toBeDisabled();
 
     await user.click(coverCheckbox);
@@ -604,11 +605,11 @@ describe('PlatformEditor - Localized Error Handling', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
     // Try to save XiaoHongShu (will fail)
-    await user.type(screen.getByLabelText('Title'), 'XHS Title');
+    await user.type(screen.getByLabelText('Search-Keyword Title'), 'XHS Title');
     const saveButton = screen.getByRole('button', { name: /Save Draft/i });
     await user.click(saveButton);
 
@@ -625,7 +626,7 @@ describe('PlatformEditor - Localized Error Handling', () => {
     });
 
     // Edit and save Bilibili (should succeed)
-    await user.type(screen.getByLabelText('Title'), 'Bili Title');
+    await user.type(screen.getByLabelText('Repost Title'), 'Bili Title');
     const biliSaveButton = screen.getByRole('button', { name: /Save Draft/i });
     await user.click(biliSaveButton);
 

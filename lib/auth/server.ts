@@ -1,47 +1,52 @@
 /**
  * Server-side auth utilities
- * 
- * Provides functions for getting the current user, checking auth status,
- * and handling server-side auth requirements.
+ *
+ * V1 LOCAL MODE: Local-first remains the default. Unless hosted persistence
+ * is explicitly enabled, auth functions return a fixed local operator identity.
+ *
+ * V2 HOSTED MODE: When hosted persistence is explicitly enabled, auth functions
+ * delegate to Supabase for real user authentication.
  */
 
-import { createServerSupabaseClient } from '@/lib/clients/supabase';
-import type { User } from '@supabase/supabase-js';
+const LOCAL_OPERATOR_ID = 'local-operator';
+
+/**
+ * Check if we're running in local-first mode.
+ */
+function isLocalMode(): boolean {
+  const hostedFlag = process.env.USE_HOSTED_PERSISTENCE;
+  return hostedFlag !== 'true' && hostedFlag !== '1';
+}
+
+/**
+ * Minimal user shape for local mode (no Supabase dependency)
+ */
+interface LocalUser {
+  id: string;
+  email?: string;
+}
 
 /**
  * Get the current authenticated user from server context
- * 
- * Returns null if no user is authenticated.
- * Use this in Server Components, Server Actions, and API routes.
- * 
- * @example
- * ```tsx
- * import { getCurrentUser } from '@/lib/auth/server'
- * 
- * export default async function DashboardPage() {
- *   const user = await getCurrentUser()
- *   if (!user) {
- *     redirect('/auth/sign-in')
- *   }
- *   // ...
- * }
- * ```
+ *
+ * In local mode: returns a fixed local operator identity.
+ * In hosted mode: delegates to Supabase auth.
  */
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<LocalUser | null> {
+  if (isLocalMode()) {
+    return { id: LOCAL_OPERATOR_ID, email: 'operator@local' };
+  }
+
+  const { createServerSupabaseClient } = await import('@/lib/clients/supabase');
   const supabase = createServerSupabaseClient();
-  
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  
+  const { data: { user } } = await supabase.auth.getUser();
   return user;
 }
 
 /**
  * Get the current user's ID
- * 
- * Returns null if no user is authenticated.
- * Convenience wrapper around getCurrentUser().
+ *
+ * In local mode: returns 'local-operator'.
  */
 export async function getCurrentUserId(): Promise<string | null> {
   const user = await getCurrentUser();
@@ -50,35 +55,22 @@ export async function getCurrentUserId(): Promise<string | null> {
 
 /**
  * Require an authenticated user in server context
- * 
- * Throws an error with a 401 status if no user is authenticated.
- * Use this in API routes where you want to enforce authentication.
- * 
- * @example
- * ```tsx
- * import { requireUser } from '@/lib/auth/server'
- * 
- * export async function GET() {
- *   const user = await requireUser()
- *   // user is guaranteed to be non-null here
- * }
- * ```
+ *
+ * In local mode: always succeeds with local operator.
+ * In hosted mode: throws 401 if not authenticated.
  */
-export async function requireUser(): Promise<User> {
+export async function requireUser(): Promise<LocalUser> {
   const user = await getCurrentUser();
-  
+
   if (!user) {
     throw new Error('Unauthorized: Authentication required');
   }
-  
+
   return user;
 }
 
 /**
  * Require an authenticated user and return their ID
- * 
- * Throws an error with a 401 status if no user is authenticated.
- * Convenience wrapper around requireUser().
  */
 export async function requireUserId(): Promise<string> {
   const user = await requireUser();
@@ -87,9 +79,8 @@ export async function requireUserId(): Promise<string> {
 
 /**
  * Check if a user is authenticated
- * 
- * Returns true if a user is authenticated, false otherwise.
- * Useful for conditional rendering or logic based on auth state.
+ *
+ * In local mode: always returns true.
  */
 export async function isAuthenticated(): Promise<boolean> {
   const user = await getCurrentUser();

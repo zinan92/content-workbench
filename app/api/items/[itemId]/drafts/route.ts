@@ -69,7 +69,7 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { platform, title, body: draftBody, coverNotes, checklist } = body;
+    const { platform, title, body: draftBody, coverNotes, searchTitle, keyframeCandidates, checklist } = body;
 
     // Validate platform
     if (!platform || !VALID_PLATFORMS.includes(platform as Platform)) {
@@ -93,6 +93,8 @@ export async function POST(
       title,
       body: draftBody,
       coverNotes: coverNotes || '',
+      searchTitle: searchTitle || '',
+      keyframeCandidates: keyframeCandidates || '',
       checklist: checklist || {},
       lastUpdated: new Date().toISOString(),
     };

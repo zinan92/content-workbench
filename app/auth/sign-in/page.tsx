@@ -1,10 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createBrowserSupabaseClient } from '@/lib/clients/supabase';
+// Note: Supabase client imported lazily in handleSubmit to avoid build failure without env vars
 
-export default function SignInPage() {
+/**
+ * V2 sign-in page — only used when hosted auth (Supabase) is configured.
+ * In V1 local mode, this page is unreachable because middleware does not redirect here.
+ */
+export default function SignInPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SignInPage />
+    </Suspense>
+  );
+}
+
+function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
@@ -21,6 +33,7 @@ export default function SignInPage() {
     setIsSubmitting(true);
 
     try {
+      const { createBrowserSupabaseClient } = await import('@/lib/clients/supabase');
       const supabase = createBrowserSupabaseClient();
 
       if (mode === 'sign-in') {

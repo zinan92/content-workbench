@@ -10,9 +10,11 @@ import { GET } from '@/app/api/items/[itemId]/route';
 import { generateSessionId, generateContentItemId } from '@/lib/domain/ids';
 import { saveSession, saveItem } from '@/lib/services/workspace-store';
 import type { Session, ContentItem } from '@/lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
 
 // Mock data directory for tests
 let testDataDir: string;
+let authCleanup: () => void;
 
 describe('GET /api/items/[itemId]', () => {
   let testSessionId: string;
@@ -22,6 +24,7 @@ describe('GET /api/items/[itemId]', () => {
   beforeEach(async () => {
     testDataDir = await mkdtemp(join(tmpdir(), 'item-detail-test-'));
     process.env.DATA_ROOT = testDataDir;
+    authCleanup = setupAuthMock();
     
     testSessionId = generateSessionId();
     readyItemId = generateContentItemId();
@@ -157,6 +160,7 @@ describe('GET /api/items/[itemId]', () => {
       await rm(testDataDir, { recursive: true, force: true });
     }
     delete process.env.DATA_ROOT;
+    authCleanup();
   });
 
   it('returns 200 with item data for ready items', async () => {

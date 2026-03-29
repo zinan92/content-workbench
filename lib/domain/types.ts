@@ -40,12 +40,19 @@ export interface PreparedArtifacts {
 
 /**
  * Platform-specific draft state
+ *
+ * All platforms share base fields (title, body, coverNotes, checklist).
+ * XiaoHongShu has additional search-keyword and keyframe fields for V1.
  */
 export interface PlatformDraft {
   platform: Platform;
   title: string;
   body: string;
   coverNotes?: string;
+  /** XiaoHongShu: search-keyword-oriented title variant */
+  searchTitle?: string;
+  /** XiaoHongShu: keyframe timestamps or filenames for cover candidates */
+  keyframeCandidates?: string;
   checklist: Record<string, boolean>;
   lastUpdated: string; // ISO timestamp
 }
@@ -57,6 +64,7 @@ export interface SourceMetadata {
   title: string;
   publishDate?: string;
   duration?: number;
+  viewCount?: number;
   likes?: number;
   comments?: number;
   shares?: number;

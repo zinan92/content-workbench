@@ -20,23 +20,19 @@ vi.mock('@/lib/config/env', () => ({
   getSupabasePublishableKey: vi.fn(() => 'test-key'),
 }));
 
-// Import after mocking
-const { 
+// Import after mocking — use static import (vi.mock is hoisted above imports)
+import {
   loadOwnedItemWithDrafts,
   updatePlatformDraft,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/draft-repository');
+} from '@/lib/repositories/draft-repository';
 
-// Also need to import session and item repositories for setup
-const {
+import {
   saveSession,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/session-repository');
+} from '@/lib/repositories/session-repository';
 
-const {
+import {
   saveItem,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/item-repository');
+} from '@/lib/repositories/item-repository';
 
 describe('draft-repository', () => {
   const userId1 = 'user-123';

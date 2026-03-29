@@ -15,6 +15,7 @@ import { saveWorkspace, loadWorkspace } from '@/lib/services/workspace-store';
 import type { ContentItem, Workspace } from '@/lib/domain/types';
 import { unlinkSync } from 'fs';
 import { getWorkspaceFile } from '@/lib/utils/paths';
+import { setupAuthMock } from '../utils/auth-mock';
 
 // Helper to create a mock ready item
 function createMockReadyItem(itemId: string, sessionId: string): ContentItem {
@@ -109,13 +110,16 @@ async function cleanupTestData(sessionId: string) {
 describe('POST /api/items/[itemId]/drafts - Save platform draft', () => {
   const sessionId = 'test-session-drafts';
   const itemId = 'test-item-drafts';
+  let authCleanup: () => void;
 
   beforeAll(async () => {
     await createTestWorkspace(sessionId, itemId);
+    authCleanup = setupAuthMock();
   });
 
   afterAll(async () => {
     await cleanupTestData(sessionId);
+    authCleanup();
   });
 
   it('saves draft edits for a specific platform', async () => {
@@ -142,6 +146,30 @@ describe('POST /api/items/[itemId]/drafts - Save platform draft', () => {
     expect(workspace?.items[itemId].platformDrafts.xiaohongshu.title).toBe('My XHS Title');
     expect(workspace?.items[itemId].platformDrafts.xiaohongshu.body).toBe('My XHS caption text');
     expect(workspace?.items[itemId].platformDrafts.xiaohongshu.coverNotes).toBe('Cover image notes');
+  });
+
+  it('persists XiaoHongShu-specific searchTitle and keyframeCandidates fields', async () => {
+    const request = new Request('http://localhost/api/items/test-item-drafts/drafts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platform: 'xiaohongshu',
+        title: 'Generic Title',
+        body: 'Caption',
+        searchTitle: 'Search Keyword Oriented Title',
+        keyframeCandidates: '0:15 close-up, 0:42 wide shot',
+        checklist: {},
+      }),
+    });
+
+    const response = await POST(request, { params: Promise.resolve({ itemId }) });
+    expect(response.status).toBe(200);
+
+    // Verify XHS-specific fields are persisted
+    const workspace = await loadWorkspace(sessionId);
+    const draft = workspace?.items[itemId].platformDrafts.xiaohongshu;
+    expect(draft?.searchTitle).toBe('Search Keyword Oriented Title');
+    expect(draft?.keyframeCandidates).toBe('0:15 close-up, 0:42 wide shot');
   });
 
   it('saves independent checklist state per platform', async () => {
@@ -333,6 +361,7 @@ describe('POST /api/items/[itemId]/drafts - Save platform draft', () => {
 describe('GET /api/items/[itemId]/drafts - Load platform drafts', () => {
   const sessionId = 'test-session-drafts-get';
   const itemId = 'test-item-drafts-get';
+  let authCleanup: () => void;
 
   beforeAll(async () => {
     const workspace = await createTestWorkspace(sessionId, itemId);
@@ -348,10 +377,12 @@ describe('GET /api/items/[itemId]/drafts - Load platform drafts', () => {
     };
 
     await saveWorkspace(workspace);
+    authCleanup = setupAuthMock();
   });
 
   afterAll(async () => {
     await cleanupTestData(sessionId);
+    authCleanup();
   });
 
   it('returns all platform drafts for an item', async () => {

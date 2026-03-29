@@ -69,8 +69,16 @@ export async function loadOwnedSession(
     
     const persisted = await readJsonFile<PersistedSession>(workspaceFile);
     
-    // Ownership check: return null if not owned by requesting user
-    if (persisted.owner_id !== userId) {
+    // Ownership check: return null if not owned by requesting user.
+    // Only in V1 local-first mode do we allow ownerless legacy data to be
+    // read under the single-operator assumption.
+    const hostedFlag = process.env.USE_HOSTED_PERSISTENCE;
+    const isLocal = hostedFlag !== 'true' && hostedFlag !== '1';
+    if (persisted.owner_id && persisted.owner_id !== userId) {
+      return null;
+    }
+    if (!persisted.owner_id && !isLocal) {
+      // In hosted mode, ownerless data should not be accessible
       return null;
     }
     

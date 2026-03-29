@@ -1,27 +1,31 @@
 # Architecture & Codebase Boundaries
 
-This document defines the architectural layers and boundaries for Content Workbench, especially critical during the hosted migration from V1 local-first to V2 production architecture.
+This document defines the architectural layers and boundaries for Content Workbench.
 
 ## Table of Contents
 - [System Overview](#system-overview)
 - [Layered Architecture](#layered-architecture)
 - [Persistence Boundaries](#persistence-boundaries)
+- [Auth Model](#auth-model)
 - [Security Boundaries](#security-boundaries)
-- [Migration Strategy](#migration-strategy)
+- [Future V2 Migration Ideas](#future-v2-migration-ideas)
 - [Anti-Patterns](#anti-patterns)
 
 ---
 
 ## System Overview
 
-Content Workbench is evolving from a local-first V1 to a hosted multi-user V2 architecture:
+Content Workbench is a **local-first, single-operator** replication workbench.
 
-**V1 (Current Baseline)**
+**V1 (Current — Active)**
 - Next.js app with filesystem-backed persistence
 - Sessions/items stored in `data/workspaces/`
-- Single-user, local development focus
+- Single-user, local-first — no hosted auth required
+- Auth layer returns a fixed `local-operator` identity when Supabase is not configured
+- Fixture-backed adapters for discovery and preparation
 
-**V2 (Migration Target)**
+**V2 (Future Ideas — Not Active)**
+The following are aspirational directions documented for reference. They are NOT required for V1 and should not be treated as current requirements:
 - Vercel-hosted Next.js web app
 - Supabase (Auth + Postgres + RLS) for persistence
 - Cloudflare R2 for artifact storage
@@ -148,6 +152,20 @@ During migration, **NEW code must NOT extend filesystem coupling**:
 
 ---
 
+## Auth Model
+
+V1 uses a **local-mode auth bypass**:
+
+- When `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are not set, the auth layer (`lib/auth/server.ts`) returns a fixed `local-operator` identity.
+- All API routes call `requireUserId()` which succeeds automatically in local mode.
+- The middleware passes all requests through without auth checks in local mode.
+- Repositories still receive a `userId` parameter and perform ownership checks, but legacy data without `owner_id` is treated as belonging to the current user.
+- Auth UI components (sign-in page, AuthProvider) exist for future V2 use but are not loaded in V1 local mode.
+
+This means the app works fully out of the box with `npm run dev` — no Supabase project, no environment variables, no sign-in required.
+
+---
+
 ## Security Boundaries
 
 ### Browser-Safe vs Server-Only
@@ -221,7 +239,11 @@ export async function POST() {
 
 ---
 
-## Migration Strategy
+## Future V2 Migration Ideas
+
+> **NOTE**: Everything below this point describes future V2 aspirations. None of this is required for, or active in, the current V1 product. The V1 product works fully without Supabase, R2, Railway, or any hosted infrastructure.
+
+## Migration Strategy (V2 — Future)
 
 ### Feature Flags
 

@@ -20,20 +20,17 @@ vi.mock('@/lib/config/env', () => ({
   getSupabasePublishableKey: vi.fn(() => 'test-key'),
 }));
 
-// Import after mocking
-const { 
+// Import after mocking — use static import (vi.mock is hoisted above imports)
+import {
   saveItem,
   loadOwnedItem,
   loadOwnedItems,
   updateItemPrepStatus,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/item-repository');
+} from '@/lib/repositories/item-repository';
 
-// Also need to import session repository for setup
-const {
+import {
   saveSession,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require('@/lib/repositories/session-repository');
+} from '@/lib/repositories/session-repository';
 
 describe('item-repository', () => {
   const userId1 = 'user-123';

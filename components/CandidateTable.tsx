@@ -18,7 +18,7 @@
 import type { ContentItem } from '@/lib/domain/types';
 import { useMemo } from 'react';
 
-type SortField = 'title' | 'publishDate' | 'duration' | 'likes' | 'comments' | 'shares' | 'simpleScore';
+type SortField = 'title' | 'publishDate' | 'duration' | 'viewCount' | 'likes' | 'comments' | 'shares' | 'simpleScore';
 type SortDirection = 'asc' | 'desc';
 
 interface CandidateTableProps {
@@ -65,6 +65,9 @@ export default function CandidateTable({
       } else if (sortBy === 'duration') {
         aValue = a.source.duration ?? 0;
         bValue = b.source.duration ?? 0;
+      } else if (sortBy === 'viewCount') {
+        aValue = a.source.viewCount ?? 0;
+        bValue = b.source.viewCount ?? 0;
       } else if (sortBy === 'likes') {
         aValue = a.source.likes ?? 0;
         bValue = b.source.likes ?? 0;
@@ -193,6 +196,7 @@ export default function CandidateTable({
               {renderSortableHeader('title', 'Title')}
               {renderSortableHeader('publishDate', 'Published')}
               {renderSortableHeader('duration', 'Duration')}
+              {renderSortableHeader('viewCount', 'Views', 'right')}
               {renderSortableHeader('likes', 'Likes', 'right')}
               {renderSortableHeader('comments', 'Comments', 'right')}
               {renderSortableHeader('shares', 'Shares', 'right')}
@@ -236,6 +240,9 @@ export default function CandidateTable({
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {formatDuration(candidate.source.duration)}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                  {formatNumber(candidate.source.viewCount)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600 text-right">
                   {formatNumber(candidate.source.likes)}

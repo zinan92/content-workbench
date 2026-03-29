@@ -11,7 +11,7 @@ interface SessionData {
   isPartial?: boolean;
 }
 
-type SortField = 'title' | 'publishDate' | 'duration' | 'likes' | 'comments' | 'shares' | 'simpleScore';
+type SortField = 'title' | 'publishDate' | 'duration' | 'viewCount' | 'likes' | 'comments' | 'shares' | 'simpleScore';
 type SortDirection = 'asc' | 'desc';
 
 export default function SessionPage() {

@@ -15,13 +15,16 @@ import { PATCH } from '../../app/api/sessions/[sessionId]/selection/route';
 import { saveWorkspace } from '../../lib/services/workspace-store';
 import { generateSessionId, generateContentItemId } from '../../lib/domain/ids';
 import type { Session, ContentItem, Workspace } from '../../lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
 
 let testDataDir: string;
 const testSessionIds: string[] = [];
+let authCleanup: () => void;
 
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'selection-test-'));
   process.env.DATA_ROOT = testDataDir;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -30,6 +33,7 @@ afterEach(async () => {
   }
   delete process.env.DATA_ROOT;
   testSessionIds.length = 0;
+  authCleanup();
 });
 
 function createTestSession(): Session {

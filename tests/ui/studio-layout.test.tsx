@@ -31,6 +31,7 @@ const mockReadyItem: ContentItem = {
     authorName: 'Test Author',
     publishDate: '2024-01-15',
     duration: 125,
+    viewCount: 50000,
     likes: 5000,
     comments: 250,
     shares: 100,
@@ -110,7 +111,6 @@ describe('StudioPage - Layout', () => {
       expect(screen.getByText('XiaoHongShu Draft')).toBeInTheDocument();
     });
 
-    // Verify left panel content
     expect(screen.getAllByText('Test Video Title').length).toBeGreaterThan(0);
     expect(screen.getByText('Metadata')).toBeInTheDocument();
     expect(screen.getByText('Engagement')).toBeInTheDocument();
@@ -127,14 +127,15 @@ describe('StudioPage - Layout', () => {
     expect(screen.getByText(/video\.mp4/)).toBeInTheDocument();
   });
 
-  it('displays source metadata in left panel', async () => {
+  it('displays source metadata including view count in left panel', async () => {
     render(<StudioPage />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Author')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('2:05')).toBeInTheDocument(); // 125 seconds = 2:05
+    expect(screen.getByText('2:05')).toBeInTheDocument();
+    expect(screen.getByText('50,000')).toBeInTheDocument(); // viewCount
     expect(screen.getByText('5,000')).toBeInTheDocument(); // likes
     expect(screen.getByText('250')).toBeInTheDocument(); // comments
     expect(screen.getByText('100')).toBeInTheDocument(); // shares
@@ -157,8 +158,8 @@ describe('StudioPage - Layout', () => {
       expect(screen.getByText('Source Context')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('85')).toBeInTheDocument(); // score
-    expect(screen.getByText('Yes')).toBeInTheDocument(); // recommended
+    expect(screen.getByText('85')).toBeInTheDocument();
+    expect(screen.getByText('Yes')).toBeInTheDocument();
   });
 
   it('shows placeholder when video is not available', async () => {
@@ -236,7 +237,8 @@ describe('StudioPage - Platform Tabs', () => {
       expect(screen.getByText('XiaoHongShu Draft')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Little Red Book')).toBeInTheDocument();
+    // XHS-specific: search-keyword title field is present
+    expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
   });
 
   it('switches to different platform tab when clicked', async () => {
@@ -247,13 +249,12 @@ describe('StudioPage - Platform Tabs', () => {
       expect(screen.getByText('XiaoHongShu Draft')).toBeInTheDocument();
     });
 
-    // Click Bilibili tab
     const bilibiliTab = screen.getByRole('button', { name: /Bilibili/i });
     await user.click(bilibiliTab);
 
     await waitFor(() => {
       expect(screen.getByText('Bilibili Draft')).toBeInTheDocument();
-      expect(screen.getByText('Video platform')).toBeInTheDocument();
+      expect(screen.getByLabelText('Repost Title')).toBeInTheDocument();
     });
   });
 
@@ -265,13 +266,12 @@ describe('StudioPage - Platform Tabs', () => {
       expect(screen.getByText('XiaoHongShu Draft')).toBeInTheDocument();
     });
 
-    // Click X tab
     const xTab = screen.getByRole('button', { name: /^X$/i });
     await user.click(xTab);
 
     await waitFor(() => {
       expect(screen.getByText('X Draft')).toBeInTheDocument();
-      expect(screen.getByText('Twitter/X')).toBeInTheDocument();
+      expect(screen.getByLabelText('Post Text')).toBeInTheDocument();
     });
   });
 });
@@ -292,49 +292,49 @@ describe('StudioPage - Draft Fields', () => {
     vi.clearAllMocks();
   });
 
-  it('provides editable title field', async () => {
+  it('provides editable search-keyword title for XiaoHongShu', async () => {
     const user = userEvent.setup();
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
-    await user.type(titleInput, 'My Draft Title');
+    const titleInput = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
+    await user.type(titleInput, 'My XHS Title');
 
-    expect(titleInput.value).toBe('My Draft Title');
+    expect(titleInput.value).toBe('My XHS Title');
   });
 
-  it('provides editable body/caption field', async () => {
+  it('provides editable XHS caption field', async () => {
     const user = userEvent.setup();
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Caption \/ Description/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('XHS Caption Draft')).toBeInTheDocument();
     });
 
-    const bodyInput = screen.getByLabelText(/Caption \/ Description/i) as HTMLTextAreaElement;
-    await user.type(bodyInput, 'My draft caption text');
+    const bodyInput = screen.getByLabelText('XHS Caption Draft') as HTMLTextAreaElement;
+    await user.type(bodyInput, 'My XHS caption');
 
-    expect(bodyInput.value).toBe('My draft caption text');
+    expect(bodyInput.value).toBe('My XHS caption');
   });
 
-  it('provides editable cover/visual notes field', async () => {
+  it('provides keyframe/cover candidates field for XiaoHongShu', async () => {
     const user = userEvent.setup();
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Cover \/ Visual Notes/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Keyframe \/ Cover Candidates/i)).toBeInTheDocument();
     });
 
-    const coverInput = screen.getByLabelText(/Cover \/ Visual Notes/i) as HTMLTextAreaElement;
-    await user.type(coverInput, 'Cover image notes');
+    const input = screen.getByLabelText(/Keyframe \/ Cover Candidates/i) as HTMLTextAreaElement;
+    await user.type(input, '0:15 0:42 close-up shot');
 
-    expect(coverInput.value).toBe('Cover image notes');
+    expect(input.value).toBe('0:15 0:42 close-up shot');
   });
 
-  it('shows Tweet Text label for X platform', async () => {
+  it('shows Post Text label for X platform', async () => {
     const user = userEvent.setup();
     render(<StudioPage />);
 
@@ -342,12 +342,11 @@ describe('StudioPage - Draft Fields', () => {
       expect(screen.getByRole('button', { name: /^X$/i })).toBeInTheDocument();
     });
 
-    // Switch to X tab
     const xTab = screen.getByRole('button', { name: /^X$/i });
     await user.click(xTab);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Tweet Text')).toBeInTheDocument();
+      expect(screen.getByLabelText('Post Text')).toBeInTheDocument();
     });
   });
 
@@ -356,12 +355,12 @@ describe('StudioPage - Draft Fields', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search-Keyword Title')).toBeInTheDocument();
     });
 
-    // Edit XiaoHongShu draft
-    const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
-    await user.type(titleInput, 'XHS Title');
+    // Edit XHS search title
+    const searchTitle = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
+    await user.type(searchTitle, 'XHS Search Title');
 
     // Switch to Bilibili
     const bilibiliTab = screen.getByRole('button', { name: /Bilibili/i });
@@ -371,11 +370,11 @@ describe('StudioPage - Draft Fields', () => {
       expect(screen.getByText('Bilibili Draft')).toBeInTheDocument();
     });
 
-    // Edit Bilibili draft
-    const bilibiliTitleInput = screen.getByLabelText('Title') as HTMLInputElement;
-    await user.type(bilibiliTitleInput, 'Bilibili Title');
+    // Edit Bilibili title
+    const bilibiliTitle = screen.getByLabelText('Repost Title') as HTMLInputElement;
+    await user.type(bilibiliTitle, 'Bilibili Title');
 
-    // Switch back to XiaoHongShu
+    // Switch back to XHS
     const xhsTab = screen.getByRole('button', { name: /XiaoHongShu/i });
     await user.click(xhsTab);
 
@@ -383,9 +382,9 @@ describe('StudioPage - Draft Fields', () => {
       expect(screen.getByText('XiaoHongShu Draft')).toBeInTheDocument();
     });
 
-    // Verify XiaoHongShu draft was preserved
-    const xhsTitleInput = screen.getByLabelText('Title') as HTMLInputElement;
-    expect(xhsTitleInput.value).toBe('XHS Title');
+    // Verify XHS draft was preserved
+    const xhsSearchTitle = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
+    expect(xhsSearchTitle.value).toBe('XHS Search Title');
   });
 
   it('loads existing platform draft data from item', async () => {
@@ -397,6 +396,8 @@ describe('StudioPage - Draft Fields', () => {
           platform: 'xiaohongshu' as const,
           title: 'Existing Title',
           body: 'Existing body text',
+          searchTitle: 'Existing Search Title',
+          keyframeCandidates: '0:15 good frame',
           coverNotes: 'Existing cover notes',
           checklist: {},
           lastUpdated: new Date().toISOString(),
@@ -413,15 +414,15 @@ describe('StudioPage - Draft Fields', () => {
     render(<StudioPage />);
 
     await waitFor(() => {
-      const titleInput = screen.getByLabelText('Title') as HTMLInputElement;
-      expect(titleInput.value).toBe('Existing Title');
+      const searchTitle = screen.getByLabelText('Search-Keyword Title') as HTMLInputElement;
+      expect(searchTitle.value).toBe('Existing Search Title');
     });
 
-    const bodyInput = screen.getByLabelText(/Caption \/ Description/i) as HTMLTextAreaElement;
+    const bodyInput = screen.getByLabelText('XHS Caption Draft') as HTMLTextAreaElement;
     expect(bodyInput.value).toBe('Existing body text');
 
-    const coverInput = screen.getByLabelText(/Cover \/ Visual Notes/i) as HTMLTextAreaElement;
-    expect(coverInput.value).toBe('Existing cover notes');
+    const keyframes = screen.getByLabelText(/Keyframe \/ Cover Candidates/i) as HTMLTextAreaElement;
+    expect(keyframes.value).toBe('0:15 good frame');
   });
 });
 
@@ -456,7 +457,7 @@ describe('StudioPage - Error States', () => {
 
   it('navigates back when error go-back button is clicked', async () => {
     const user = userEvent.setup();
-    
+
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 403,
