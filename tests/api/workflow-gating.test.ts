@@ -9,7 +9,19 @@
  * - VAL-CROSS-005: Refresh and navigation preserve workflow progress
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { setupAuthMock } from '../utils/auth-mock';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', async () => {
+  const actual = await vi.importActual('@/lib/config/env');
+  return {
+    ...actual,
+    useHostedPersistence: vi.fn(() => false),
+    useHostedStorage: vi.fn(() => false),
+    useHostedWorker: vi.fn(() => false),
+  };
+});
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -22,10 +34,12 @@ import { generateSessionId, generateContentItemId } from '@/lib/domain/ids';
 import type { Session, ContentItem, Workspace } from '@/lib/domain/types';
 
 let testDataDir: string;
+let authCleanup: () => void;
 
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'workflow-gating-test-'));
   process.env.DATA_ROOT = testDataDir;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -36,6 +50,7 @@ afterEach(async () => {
     await rm(testDataDir, { recursive: true, force: true });
   }
   delete process.env.DATA_ROOT;
+  authCleanup();
 });
 
 function createTestSession(overrides?: Partial<Session>): Session {

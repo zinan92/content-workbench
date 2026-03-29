@@ -2,12 +2,30 @@
  * Tests for session API route with discovery integration
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GET } from '@/app/api/sessions/[sessionId]/route';
 import { POST as intakePost } from '@/app/api/intake/route';
 import type { Session, ContentItem } from '@/lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', async () => {
+  const actual = await vi.importActual('@/lib/config/env');
+  return {
+    ...actual,
+    useHostedPersistence: vi.fn(() => false),
+    useHostedStorage: vi.fn(() => false),
+    useHostedWorker: vi.fn(() => false),
+  };
+});
 
 describe('GET /api/sessions/[sessionId]', () => {
+  const cleanup = setupAuthMock();
+  
+  afterEach(() => {
+    cleanup();
+  });
+
   describe('creator-profile sessions', () => {
     it('triggers discovery on first load and returns candidates', async () => {
       // Create a creator-profile session via intake

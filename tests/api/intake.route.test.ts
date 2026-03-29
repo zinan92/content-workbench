@@ -2,20 +2,34 @@
  * Tests for intake API route
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { POST } from '../../app/api/intake/route';
 import * as workspaceStore from '../../lib/services/workspace-store';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setupAuthMock } from '../utils/auth-mock';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', async () => {
+  const actual = await vi.importActual('@/lib/config/env');
+  return {
+    ...actual,
+    useHostedPersistence: vi.fn(() => false),
+    useHostedStorage: vi.fn(() => false),
+    useHostedWorker: vi.fn(() => false),
+  };
+});
 
 // Mock data directory for tests
 let testDataDir: string;
+let authCleanup: () => void;
 
 // Override paths module to use test directory
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'intake-test-'));
   process.env.DATA_ROOT = testDataDir;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -23,6 +37,7 @@ afterEach(async () => {
     await rm(testDataDir, { recursive: true, force: true });
   }
   delete process.env.DATA_ROOT;
+  authCleanup();
 });
 
 describe('POST /api/intake', () => {

@@ -5,17 +5,35 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
-  saveItem,
-  loadOwnedItem,
-  loadOwnedItems,
-  updateItemPrepStatus,
-} from '@/lib/repositories/item-repository';
 import type { ContentItem } from '@/lib/domain/types';
 import { generateContentItemId, generateSessionId } from '@/lib/domain/ids';
 import { fileExists } from '@/lib/utils/fs';
 import { getItemFile } from '@/lib/utils/paths';
 import { promises as fs } from 'fs';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', () => ({
+  useHostedPersistence: vi.fn(() => false),
+  useHostedStorage: vi.fn(() => false),
+  useHostedWorker: vi.fn(() => false),
+  getSupabaseUrl: vi.fn(() => 'http://localhost:54321'),
+  getSupabasePublishableKey: vi.fn(() => 'test-key'),
+}));
+
+// Import after mocking
+const { 
+  saveItem,
+  loadOwnedItem,
+  loadOwnedItems,
+  updateItemPrepStatus,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/item-repository');
+
+// Also need to import session repository for setup
+const {
+  saveSession,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/session-repository');
 
 describe('item-repository', () => {
   const userId1 = 'user-123';
@@ -42,6 +60,21 @@ describe('item-repository', () => {
     },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+  };
+
+  // Helper to create a test session
+  const createTestSession = async (userId: string) => {
+    const session = {
+      id: sessionId,
+      inputLink: 'https://www.douyin.com/user/test',
+      inputType: 'creator-profile' as const,
+      candidateIds: [],
+      selectedIds: [],
+      workflowPhase: 'intake' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveSession(session, userId);
   };
 
   beforeEach(async () => {
@@ -71,8 +104,7 @@ describe('item-repository', () => {
 
   describe('saveItem', () => {
     it('should save item with owner association', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // Verify filesystem persistence
@@ -83,15 +115,13 @@ describe('item-repository', () => {
 
   describe('loadOwnedItem', () => {
     it('should return null for non-existent item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       const result = await loadOwnedItem(userId1, sessionId, 'non-existent');
       expect(result).toBeNull();
     });
 
     it('should load item for the owner', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       const result = await loadOwnedItem(userId1, sessionId, itemId);
@@ -101,8 +131,7 @@ describe('item-repository', () => {
     });
 
     it('should return null for non-owner', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // User2 tries to load user1's item
@@ -113,15 +142,13 @@ describe('item-repository', () => {
 
   describe('loadOwnedItems', () => {
     it('should return empty array when no items exist', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       const result = await loadOwnedItems(userId1, sessionId);
       expect(result).toEqual([]);
     });
 
     it('should return only items from owned session', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       const item1 = { ...testItem, id: generateContentItemId() };
       const item2 = { ...testItem, id: generateContentItemId() };
       
@@ -130,12 +157,11 @@ describe('item-repository', () => {
       
       const items = await loadOwnedItems(userId1, sessionId);
       expect(items).toHaveLength(2);
-      expect(items.map(i => i.id).sort()).toEqual([item1.id, item2.id].sort());
+      expect(items.map((i: ContentItem) => i.id).sort()).toEqual([item1.id, item2.id].sort());
     });
 
     it('should not return items from non-owned session', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // User2 tries to load user1's items
@@ -146,8 +172,7 @@ describe('item-repository', () => {
 
   describe('updateItemPrepStatus', () => {
     it('should update prep status for owned item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       await updateItemPrepStatus(userId1, sessionId, itemId, 'ready');
@@ -157,8 +182,7 @@ describe('item-repository', () => {
     });
 
     it('should throw error when updating non-owned item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // User2 tries to update user1's item

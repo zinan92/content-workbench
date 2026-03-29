@@ -5,17 +5,29 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
-  saveSession, 
-  loadOwnedSession, 
-  findOwnedSessions,
-  updateSessionSelection,
-} from '@/lib/repositories/session-repository';
 import type { Session } from '@/lib/domain/types';
 import { generateSessionId } from '@/lib/domain/ids';
 import { fileExists } from '@/lib/utils/fs';
 import { getWorkspaceFile } from '@/lib/utils/paths';
 import { promises as fs } from 'fs';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', () => ({
+  useHostedPersistence: vi.fn(() => false),
+  useHostedStorage: vi.fn(() => false),
+  useHostedWorker: vi.fn(() => false),
+  getSupabaseUrl: vi.fn(() => 'http://localhost:54321'),
+  getSupabasePublishableKey: vi.fn(() => 'test-key'),
+}));
+
+// Import after mocking
+const { 
+  saveSession, 
+  loadOwnedSession, 
+  findOwnedSessions,
+  updateSessionSelection,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/session-repository');
 
 describe('session-repository', () => {
   const userId1 = 'user-123';
@@ -60,9 +72,6 @@ describe('session-repository', () => {
 
   describe('saveSession', () => {
     it('should save session with owner_id when useHostedPersistence is false', async () => {
-      // Feature flag is OFF by default, so this uses filesystem
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       await saveSession(testSession, userId1);
       
       // Verify filesystem persistence
@@ -73,15 +82,11 @@ describe('session-repository', () => {
 
   describe('loadOwnedSession', () => {
     it('should return null for non-existent session', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       const result = await loadOwnedSession(userId1, 'non-existent');
       expect(result).toBeNull();
     });
 
     it('should load session for the owner when useHostedPersistence is false', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       // Save session as user1
       await saveSession(testSession, userId1);
       
@@ -93,8 +98,6 @@ describe('session-repository', () => {
     });
 
     it('should return null for non-owner when useHostedPersistence is false', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       // Save session as user1
       await saveSession(testSession, userId1);
       
@@ -106,15 +109,11 @@ describe('session-repository', () => {
 
   describe('findOwnedSessions', () => {
     it('should return empty array when no sessions exist', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       const result = await findOwnedSessions(userId1);
       expect(result).toEqual([]);
     });
 
     it('should return only sessions owned by the user', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       const session1 = { ...testSession, id: generateSessionId() };
       const session2 = { ...testSession, id: generateSessionId() };
       
@@ -136,8 +135,6 @@ describe('session-repository', () => {
 
   describe('updateSessionSelection', () => {
     it('should update selection for owned session', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       await saveSession(testSession, userId1);
       
       const selectedIds = ['item-1', 'item-2'];
@@ -149,8 +146,6 @@ describe('session-repository', () => {
     });
 
     it('should throw error when updating non-owned session', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       await saveSession(testSession, userId1);
       
       // User2 tries to update user1's session
@@ -160,8 +155,6 @@ describe('session-repository', () => {
     });
 
     it('should throw error when session does not exist', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
       await expect(
         updateSessionSelection(userId1, 'non-existent', ['item-1'])
       ).rejects.toThrow(/not found/i);

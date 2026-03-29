@@ -5,15 +5,38 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
-  updatePlatformDraft,
-  loadOwnedItemWithDrafts,
-} from '@/lib/repositories/draft-repository';
 import type { ContentItem, PlatformDraft } from '@/lib/domain/types';
 import { generateContentItemId, generateSessionId } from '@/lib/domain/ids';
 import { fileExists } from '@/lib/utils/fs';
 import { getItemFile } from '@/lib/utils/paths';
 import { promises as fs } from 'fs';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', () => ({
+  useHostedPersistence: vi.fn(() => false),
+  useHostedStorage: vi.fn(() => false),
+  useHostedWorker: vi.fn(() => false),
+  getSupabaseUrl: vi.fn(() => 'http://localhost:54321'),
+  getSupabasePublishableKey: vi.fn(() => 'test-key'),
+}));
+
+// Import after mocking
+const { 
+  loadOwnedItemWithDrafts,
+  updatePlatformDraft,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/draft-repository');
+
+// Also need to import session and item repositories for setup
+const {
+  saveSession,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/session-repository');
+
+const {
+  saveItem,
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+} = require('@/lib/repositories/item-repository');
 
 describe('draft-repository', () => {
   const userId1 = 'user-123';
@@ -50,6 +73,21 @@ describe('draft-repository', () => {
     lastUpdated: new Date().toISOString(),
   };
 
+  // Helper to create a test session
+  const createTestSession = async (userId: string) => {
+    const session = {
+      id: sessionId,
+      inputLink: 'https://www.douyin.com/user/test',
+      inputType: 'creator-profile' as const,
+      candidateIds: [],
+      selectedIds: [],
+      workflowPhase: 'intake' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveSession(session, userId);
+  };
+
   beforeEach(async () => {
     // Clean up test items before each test
     const itemFile = getItemFile(sessionId, itemId);
@@ -77,10 +115,7 @@ describe('draft-repository', () => {
 
   describe('updatePlatformDraft', () => {
     it('should update draft for owned ready item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
-      // First, we need to save the item via item-repository
-      const { saveItem } = await import('@/lib/repositories/item-repository');
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // Update draft
@@ -94,9 +129,7 @@ describe('draft-repository', () => {
     });
 
     it('should throw error when updating draft for non-owned item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
-      const { saveItem } = await import('@/lib/repositories/item-repository');
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       
       // User2 tries to update user1's draft
@@ -106,10 +139,8 @@ describe('draft-repository', () => {
     });
 
     it('should throw error when updating draft for non-ready item', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
+      await createTestSession(userId1);
       const pendingItem = { ...testItem, prepStatus: 'pending' as const };
-      const { saveItem } = await import('@/lib/repositories/item-repository');
       await saveItem(pendingItem, userId1);
       
       await expect(
@@ -120,9 +151,7 @@ describe('draft-repository', () => {
 
   describe('loadOwnedItemWithDrafts', () => {
     it('should load item with drafts for owner', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
-      const { saveItem } = await import('@/lib/repositories/item-repository');
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       await updatePlatformDraft(userId1, sessionId, itemId, testDraft);
       
@@ -132,9 +161,7 @@ describe('draft-repository', () => {
     });
 
     it('should return null for non-owner', async () => {
-      vi.mock('@/lib/config/env', () => ({ useHostedPersistence: () => false }));
-      
-      const { saveItem } = await import('@/lib/repositories/item-repository');
+      await createTestSession(userId1);
       await saveItem(testItem, userId1);
       await updatePlatformDraft(userId1, sessionId, itemId, testDraft);
       

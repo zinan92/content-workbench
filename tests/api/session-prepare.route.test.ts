@@ -7,7 +7,7 @@
  * - Returns preparation initiation status
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,13 +15,27 @@ import { POST } from '../../app/api/sessions/[sessionId]/prepare/route';
 import { saveWorkspace, loadSession, loadItems } from '../../lib/services/workspace-store';
 import { generateSessionId, generateContentItemId } from '../../lib/domain/ids';
 import type { Session, ContentItem, Workspace } from '../../lib/domain/types';
+import { setupAuthMock } from '../utils/auth-mock';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', async () => {
+  const actual = await vi.importActual('@/lib/config/env');
+  return {
+    ...actual,
+    useHostedPersistence: vi.fn(() => false),
+    useHostedStorage: vi.fn(() => false),
+    useHostedWorker: vi.fn(() => false),
+  };
+});
 
 let testDataDir: string;
 const testSessionIds: string[] = [];
+let authCleanup: () => void;
 
 beforeEach(async () => {
   testDataDir = await mkdtemp(join(tmpdir(), 'prepare-test-'));
   process.env.DATA_ROOT = testDataDir;
+  authCleanup = setupAuthMock();
 });
 
 afterEach(async () => {
@@ -33,6 +47,7 @@ afterEach(async () => {
   }
   delete process.env.DATA_ROOT;
   testSessionIds.length = 0;
+  authCleanup();
 });
 
 function createTestSession(overrides?: Partial<Session>): Session {

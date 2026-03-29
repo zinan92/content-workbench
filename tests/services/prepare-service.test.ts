@@ -8,14 +8,23 @@
  * - Status transitions
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { prepareItems } from '../../lib/services/prepare-service';
-import { saveWorkspace, loadItem } from '../../lib/services/workspace-store';
+import { saveSession, saveItem, loadOwnedItem } from '../../lib/repositories';
 import { generateSessionId, generateContentItemId } from '../../lib/domain/ids';
-import type { Session, ContentItem, Workspace } from '../../lib/domain/types';
+import type { Session, ContentItem } from '../../lib/domain/types';
+
+// Mock feature flag to use filesystem persistence for tests
+vi.mock('@/lib/config/env', () => ({
+  useHostedPersistence: vi.fn(() => false),
+  useHostedStorage: vi.fn(() => false),
+  useHostedWorker: vi.fn(() => false),
+  getSupabaseUrl: vi.fn(() => 'http://localhost:54321'),
+  getSupabasePublishableKey: vi.fn(() => 'test-key'),
+}));
 
 let testDataDir: string;
 
@@ -77,23 +86,15 @@ describe('prepareItems', () => {
     const session = createTestSession();
     const item = createTestItem(session.id);
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item.id],
-      },
-      items: {
-        [item.id]: item,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    // Save using repository functions with userId
+    await saveSession(session, testUserId);
+    await saveItem(item, testUserId);
 
     // Prepare the item
     await prepareItems(session.id, [item.id], testUserId);
 
     // Check item reached ready state
-    const updatedItem = await loadItem(session.id, item.id);
+    const updatedItem = await loadOwnedItem(testUserId, session.id, item.id);
     expect(updatedItem?.prepStatus).toBe('ready');
   });
 
@@ -101,21 +102,12 @@ describe('prepareItems', () => {
     const session = createTestSession();
     const item = createTestItem(session.id);
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item.id],
-      },
-      items: {
-        [item.id]: item,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
+    await saveItem(item, testUserId);
 
     await prepareItems(session.id, [item.id], testUserId);
 
-    const updatedItem = await loadItem(session.id, item.id);
+    const updatedItem = await loadOwnedItem(testUserId, session.id, item.id);
     expect(updatedItem?.artifacts).toBeDefined();
     expect(updatedItem?.artifacts?.videoPath).toBeTruthy();
   });
@@ -125,23 +117,14 @@ describe('prepareItems', () => {
     const item1 = createTestItem(session.id);
     const item2 = createTestItem(session.id);
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item1.id, item2.id],
-      },
-      items: {
-        [item1.id]: item1,
-        [item2.id]: item2,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
+    await saveItem(item1, testUserId);
+    await saveItem(item2, testUserId);
 
     await prepareItems(session.id, [item1.id, item2.id], testUserId);
 
-    const updatedItem1 = await loadItem(session.id, item1.id);
-    const updatedItem2 = await loadItem(session.id, item2.id);
+    const updatedItem1 = await loadOwnedItem(testUserId, session.id, item1.id);
+    const updatedItem2 = await loadOwnedItem(testUserId, session.id, item2.id);
     
     expect(updatedItem1?.prepStatus).toBe('ready');
     expect(updatedItem2?.prepStatus).toBe('ready');
@@ -162,26 +145,17 @@ describe('prepareItems', () => {
       },
     });
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item1.id, item2.id],
-      },
-      items: {
-        [item1.id]: item1,
-        [item2.id]: item2,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
+    await saveItem(item1, testUserId);
+    await saveItem(item2, testUserId);
 
     // Set mode to cause failures for specific URLs
     process.env.CONTENT_WORKBENCH_PREP_MODE = 'mixed-outcomes';
 
     await prepareItems(session.id, [item1.id, item2.id], testUserId);
 
-    const updatedItem1 = await loadItem(session.id, item1.id);
-    const updatedItem2 = await loadItem(session.id, item2.id);
+    const updatedItem1 = await loadOwnedItem(testUserId, session.id, item1.id);
+    const updatedItem2 = await loadOwnedItem(testUserId, session.id, item2.id);
     
     // item1 should succeed
     expect(updatedItem1?.prepStatus).toBe('ready');
@@ -202,23 +176,14 @@ describe('prepareItems', () => {
       },
     });
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item.id],
-      },
-      items: {
-        [item.id]: item,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
+    await saveItem(item, testUserId);
 
     process.env.CONTENT_WORKBENCH_PREP_MODE = 'mixed-outcomes';
 
     await prepareItems(session.id, [item.id], testUserId);
 
-    const updatedItem = await loadItem(session.id, item.id);
+    const updatedItem = await loadOwnedItem(testUserId, session.id, item.id);
     expect(updatedItem?.prepStatus).toBe('failed');
     expect(updatedItem?.prepFailureReason).toContain('Failed');
   });
@@ -226,12 +191,7 @@ describe('prepareItems', () => {
   it('should handle empty item list gracefully', async () => {
     const session = createTestSession();
     
-    const workspace: Workspace = {
-      session,
-      items: {},
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
 
     // Should not throw
     await expect(prepareItems(session.id, [], testUserId)).resolves.not.toThrow();
@@ -247,21 +207,12 @@ describe('prepareItems', () => {
       },
     });
     
-    const workspace: Workspace = {
-      session: {
-        ...session,
-        selectedIds: [item.id],
-      },
-      items: {
-        [item.id]: item,
-      },
-    };
-    
-    await saveWorkspace(workspace);
+    await saveSession(session, testUserId);
+    await saveItem(item, testUserId);
 
     await prepareItems(session.id, [item.id], testUserId);
 
-    const updatedItem = await loadItem(session.id, item.id);
+    const updatedItem = await loadOwnedItem(testUserId, session.id, item.id);
     // Should remain ready with artifacts
     expect(updatedItem?.prepStatus).toBe('ready');
     expect(updatedItem?.artifacts?.videoPath).toBeTruthy();
