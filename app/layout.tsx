@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/components/AuthProvider';
+import { SignOutButton } from '@/components/SignOutButton';
 
 export const metadata: Metadata = {
   title: 'Content Replication Workbench',
-  description: 'Local-first manual content replication tool for Douyin to multi-platform publishing',
+  description: 'Hosted manual content replication tool for Douyin to multi-platform publishing',
 };
 
 export default function RootLayout({
@@ -14,19 +16,26 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Content Replication Workbench
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Manual multi-platform content replication tool
-            </p>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+        <AuthProvider>
+          <header className="bg-white border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Content Replication Workbench
+                  </h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Manual multi-platform content replication tool
+                  </p>
+                </div>
+                <SignOutButton />
+              </div>
+            </div>
+          </header>
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

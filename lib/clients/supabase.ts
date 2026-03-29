@@ -22,35 +22,14 @@ import {
   getSupabaseServiceRoleKey,
 } from '../config/env';
 
+import type { SupabaseClient as SupabaseClientType } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
+
 /**
- * Supabase client interface
- * 
- * This is a placeholder for the actual @supabase/supabase-js client type.
- * When @supabase/supabase-js is installed, replace this with:
- *   import type { SupabaseClient } from '@supabase/supabase-js'
- * 
- * For now, we define a minimal interface that documents the contract.
+ * Re-export the official Supabase client type
  */
-export interface SupabaseClient<Database = unknown> {
-  // Auth
-  auth: {
-    signIn: (credentials: unknown) => Promise<unknown>;
-    signOut: () => Promise<unknown>;
-    getSession: () => Promise<unknown>;
-    onAuthStateChange: (callback: (event: string, session: unknown) => void) => unknown;
-  };
-  
-  // Database queries
-  from: <T extends keyof Database>(table: T) => unknown;
-  
-  // Storage
-  storage: {
-    from: (bucket: string) => unknown;
-  };
-  
-  // RPC
-  rpc: (fn: string, params?: unknown) => Promise<unknown>;
-}
+export type SupabaseClient<Database = unknown> = SupabaseClientType<Database>;
 
 /**
  * Create a browser-safe Supabase client
@@ -78,23 +57,9 @@ export interface SupabaseClient<Database = unknown> {
  */
 export function createBrowserSupabaseClient<Database = unknown>(): SupabaseClient<Database> {
   const supabaseUrl = getSupabaseUrl();
-  const _supabaseKey = getSupabasePublishableKey();
+  const supabaseKey = getSupabasePublishableKey();
   
-  // TODO: Replace with actual Supabase client creation when @supabase/supabase-js is installed:
-  // import { createClient } from '@supabase/supabase-js'
-  // return createClient<Database>(supabaseUrl, _supabaseKey, {
-  //   auth: {
-  //     persistSession: true,
-  //     autoRefreshToken: true,
-  //   },
-  // })
-  
-  // Placeholder: throw clear error for now
-  throw new Error(
-    `Browser Supabase client factory called but @supabase/supabase-js not yet installed.\n` +
-    `URL: ${supabaseUrl}\n` +
-    `This is a migration scaffold - install Supabase SDK when ready to implement auth.`
-  );
+  return createBrowserClient<Database>(supabaseUrl, supabaseKey);
 }
 
 /**
@@ -131,32 +96,38 @@ export function createServerSupabaseClient<Database = unknown>(): SupabaseClient
   }
   
   const supabaseUrl = getSupabaseUrl();
-  const _supabaseKey = getSupabasePublishableKey();
+  const supabaseKey = getSupabasePublishableKey();
   
-  // TODO: Replace with actual server-side Supabase client when @supabase/ssr is installed:
-  // import { createServerClient } from '@supabase/ssr'
-  // import { cookies } from 'next/headers'
-  // 
-  // return createServerClient<Database>(supabaseUrl, _supabaseKey, {
-  //   cookies: {
-  //     get(name: string) {
-  //       return cookies().get(name)?.value
-  //     },
-  //     set(name: string, value: string, options: CookieOptions) {
-  //       cookies().set({ name, value, ...options })
-  //     },
-  //     remove(name: string, options: CookieOptions) {
-  //       cookies().set({ name, value: '', ...options })
-  //     },
-  //   },
-  // })
+  // Dynamic imports for server-only modules
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createServerClient } = require('@supabase/ssr') as typeof import('@supabase/ssr');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { cookies } = require('next/headers') as typeof import('next/headers');
   
-  // Placeholder: throw clear error for now
-  throw new Error(
-    `Server Supabase client factory called but @supabase/ssr not yet installed.\n` +
-    `URL: ${supabaseUrl}\n` +
-    `This is a migration scaffold - install Supabase SSR package when ready to implement server auth.`
-  );
+  return createServerClient<Database>(supabaseUrl, supabaseKey, {
+    cookies: {
+      async getAll() {
+        const cookieStore = await cookies();
+        return cookieStore.getAll();
+      },
+      async setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+        try {
+          const cookieStore = await cookies();
+          cookiesToSet.forEach(({ name, value, options }) => {
+            if (options) {
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2]);
+            } else {
+              cookieStore.set(name, value);
+            }
+          });
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  });
 }
 
 /**
@@ -199,22 +170,12 @@ export function createAdminSupabaseClient<Database = unknown>(): SupabaseClient<
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getSupabaseServiceRoleKey();
   
-  // TODO: Replace with actual admin client creation when @supabase/supabase-js is installed:
-  // import { createClient } from '@supabase/supabase-js'
-  // return createClient<Database>(supabaseUrl, serviceRoleKey, {
-  //   auth: {
-  //     persistSession: false,
-  //     autoRefreshToken: false,
-  //   },
-  // })
-  
-  // Placeholder: throw clear error for now
-  throw new Error(
-    `Admin Supabase client factory called but @supabase/supabase-js not yet installed.\n` +
-    `URL: ${supabaseUrl}\n` +
-    `Service role key: ${serviceRoleKey.substring(0, 10)}...\n` +
-    `This is a migration scaffold - install Supabase SDK when ready to implement admin operations.`
-  );
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 /**
