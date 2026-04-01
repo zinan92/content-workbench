@@ -1,22 +1,8 @@
-/**
- * CandidateTable - displays discovered videos for review and selection
- * 
- * Required columns per VAL-CANDIDATES-002:
- * - Title
- * - Publish Date
- * - Duration
- * - Likes
- * - Comments
- * - Shares
- * - Simple Score
- * - Recommended Flag
- * - Selection Control
- */
-
 'use client';
 
 import type { ContentItem } from '@/lib/domain/types';
 import { useMemo } from 'react';
+import { useLocale } from '@/lib/i18n/locale-context';
 
 type SortField = 'title' | 'publishDate' | 'duration' | 'viewCount' | 'likes' | 'comments' | 'shares' | 'simpleScore';
 type SortDirection = 'asc' | 'desc';
@@ -42,13 +28,13 @@ export default function CandidateTable({
   filterRecommended = false,
   onFilterChange,
 }: CandidateTableProps) {
-  // Apply filtering
+  const { t, locale } = useLocale();
+
   const filteredCandidates = useMemo(() => {
     if (!filterRecommended) return candidates;
     return candidates.filter(c => c.recommended);
   }, [candidates, filterRecommended]);
 
-  // Apply sorting
   const sortedCandidates = useMemo(() => {
     if (!sortBy) return filteredCandidates;
 
@@ -78,13 +64,12 @@ export default function CandidateTable({
         aValue = a.source.shares ?? 0;
         bValue = b.source.shares ?? 0;
       } else {
-        // simpleScore
         aValue = a.simpleScore;
         bValue = b.simpleScore;
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
@@ -117,8 +102,6 @@ export default function CandidateTable({
 
   const handleSort = (field: SortField) => {
     if (!onSort) return;
-    
-    // Toggle direction if clicking same field
     if (sortBy === field) {
       onSort(field, sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -132,7 +115,7 @@ export default function CandidateTable({
   if (sortedCandidates.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-        <p className="text-gray-600">No candidates found.</p>
+        <p className="text-gray-600">{t('table.noResults')}</p>
       </div>
     );
   }
@@ -140,7 +123,7 @@ export default function CandidateTable({
   const renderSortableHeader = (field: SortField, label: string, align: 'left' | 'right' | 'center' = 'left') => {
     const isSorted = sortBy === field;
     const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
-    
+
     return (
       <th key={field} className={`px-4 py-3 ${alignClass}`}>
         <button
@@ -159,9 +142,10 @@ export default function CandidateTable({
     );
   };
 
+  const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US';
+
   return (
     <div className="space-y-4">
-      {/* Filter controls */}
       {onFilterChange && (
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -170,9 +154,9 @@ export default function CandidateTable({
               checked={filterRecommended}
               onChange={(e) => onFilterChange(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300"
-              aria-label="Recommended only"
+              aria-label={t('table.recommendedOnly')}
             />
-            <span>Recommended only</span>
+            <span>{t('table.recommendedOnly')}</span>
           </label>
         </div>
       )}
@@ -193,16 +177,16 @@ export default function CandidateTable({
                   aria-label="Select all candidates"
                 />
               </th>
-              {renderSortableHeader('title', 'Title')}
-              {renderSortableHeader('publishDate', 'Published')}
-              {renderSortableHeader('duration', 'Duration')}
-              {renderSortableHeader('viewCount', 'Views', 'right')}
-              {renderSortableHeader('likes', 'Likes', 'right')}
-              {renderSortableHeader('comments', 'Comments', 'right')}
-              {renderSortableHeader('shares', 'Shares', 'right')}
-              {renderSortableHeader('simpleScore', 'Score', 'center')}
+              {renderSortableHeader('title', t('table.title'))}
+              {renderSortableHeader('publishDate', t('table.published'))}
+              {renderSortableHeader('duration', t('table.duration'))}
+              {renderSortableHeader('viewCount', t('table.views'), 'right')}
+              {renderSortableHeader('likes', t('table.likes'), 'right')}
+              {renderSortableHeader('comments', t('table.comments'), 'right')}
+              {renderSortableHeader('shares', t('table.shares'), 'right')}
+              {renderSortableHeader('simpleScore', t('table.score'), 'center')}
               <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                Recommended
+                {t('table.recommended')}
               </th>
             </tr>
           </thead>
@@ -236,7 +220,7 @@ export default function CandidateTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  {formatDate(candidate.source.publishDate)}
+                  {formatDate(candidate.source.publishDate, dateLocale)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {formatDuration(candidate.source.duration)}
@@ -261,7 +245,7 @@ export default function CandidateTable({
                 <td className="px-4 py-3 text-center">
                   {candidate.recommended ? (
                     <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded">
-                      ✓ Yes
+                      {t('table.yes')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
@@ -279,15 +263,12 @@ export default function CandidateTable({
   );
 }
 
-/**
- * Format date for display, with empty-state fallback
- */
-function formatDate(isoDate: string | undefined): string {
+function formatDate(isoDate: string | undefined, locale: string): string {
   if (!isoDate) return '—';
-  
+
   try {
     const date = new Date(isoDate);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -297,23 +278,17 @@ function formatDate(isoDate: string | undefined): string {
   }
 }
 
-/**
- * Format duration in seconds to MM:SS, with empty-state fallback
- */
 function formatDuration(seconds: number | undefined): string {
   if (seconds === undefined) return '—';
-  
+
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-/**
- * Format large numbers with K/M suffixes, with empty-state fallback
- */
 function formatNumber(value: number | undefined): string {
   if (value === undefined) return '—';
-  
+
   if (value >= 1000000) {
     return `${(value / 1000000).toFixed(1)}M`;
   }

@@ -2,15 +2,11 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-// Note: Supabase client imported lazily in handleSubmit to avoid build failure without env vars
+import { useLocale } from '@/lib/i18n/locale-context';
 
-/**
- * V2 sign-in page — only used when hosted auth (Supabase) is configured.
- * In V1 local mode, this page is unreachable because middleware does not redirect here.
- */
 export default function SignInPageWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">...</div>}>
       <SignInPage />
     </Suspense>
   );
@@ -19,17 +15,20 @@ export default function SignInPageWrapper() {
 function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const redirect = searchParams.get('redirect') || '/';
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSuccess(false);
     setIsSubmitting(true);
 
     try {
@@ -59,17 +58,16 @@ function SignInPage() {
           return;
         }
 
-        // For sign-up, show success message
-        setError('Account created! Please check your email to confirm.');
+        setIsSuccess(true);
+        setError(t('auth.accountCreated'));
         setIsSubmitting(false);
         return;
       }
 
-      // Navigate to the redirect URL or home
       router.push(redirect);
       router.refresh();
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('auth.unexpectedError'));
       setIsSubmitting(false);
     }
   };
@@ -79,18 +77,18 @@ function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {mode === 'sign-in' ? 'Sign in to your account' : 'Create a new account'}
+            {mode === 'sign-in' ? t('auth.signIn') : t('auth.signUp')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Access the Content Replication Workbench
+            {t('auth.accessWorkbench')}
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email-address" className="sr-only">
-                Email address
+                {t('auth.email')}
               </label>
               <input
                 id="email-address"
@@ -101,13 +99,13 @@ function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder={t('auth.email')}
                 disabled={isSubmitting}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -118,7 +116,7 @@ function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                placeholder={t('auth.password')}
                 disabled={isSubmitting}
               />
             </div>
@@ -126,11 +124,11 @@ function SignInPage() {
 
           {error && (
             <div className={`rounded-md ${
-              error.includes('created') ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              isSuccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
             } border p-4`}>
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {error.includes('created') ? (
+                  {isSuccess ? (
                     <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
@@ -141,9 +139,7 @@ function SignInPage() {
                   )}
                 </div>
                 <div className="ml-3">
-                  <p className={`text-sm ${
-                    error.includes('created') ? 'text-green-800' : 'text-red-800'
-                  }`}>
+                  <p className={`text-sm ${isSuccess ? 'text-green-800' : 'text-red-800'}`}>
                     {error}
                   </p>
                 </div>
@@ -157,7 +153,7 @@ function SignInPage() {
               disabled={isSubmitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Please wait...' : mode === 'sign-in' ? 'Sign in' : 'Sign up'}
+              {isSubmitting ? t('auth.pleaseWait') : mode === 'sign-in' ? t('auth.signInBtn') : t('auth.signUpBtn')}
             </button>
           </div>
 
@@ -167,13 +163,12 @@ function SignInPage() {
               onClick={() => {
                 setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
                 setError(null);
+                setIsSuccess(false);
               }}
               className="text-sm text-blue-600 hover:text-blue-500"
               disabled={isSubmitting}
             >
-              {mode === 'sign-in' 
-                ? "Don't have an account? Sign up" 
-                : 'Already have an account? Sign in'}
+              {mode === 'sign-in' ? t('auth.noAccount') : t('auth.hasAccount')}
             </button>
           </div>
         </form>

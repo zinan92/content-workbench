@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import type { Session, ContentItem, PrepStatus } from '@/lib/domain/types';
+import { useLocale } from '@/lib/i18n/locale-context';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 interface SessionData {
   session: Session;
@@ -17,8 +19,25 @@ interface PrepItem {
   artifacts?: ContentItem['artifacts'];
 }
 
+const STATUS_LABEL_KEYS: Record<PrepStatus, TranslationKey> = {
+  pending: 'prep.pending',
+  downloading: 'prep.downloading',
+  transcribing: 'prep.transcribing',
+  ready: 'prep.ready',
+  failed: 'prep.failed',
+};
+
+const STATUS_BADGE_STYLES: Record<PrepStatus, { bg: string; text: string }> = {
+  pending: { bg: 'bg-gray-100', text: 'text-gray-800' },
+  downloading: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  transcribing: { bg: 'bg-purple-100', text: 'text-purple-800' },
+  ready: { bg: 'bg-green-100', text: 'text-green-800' },
+  failed: { bg: 'bg-red-100', text: 'text-red-800' },
+};
+
 export default function PreparationPage() {
   const params = useParams();
+  const { t } = useLocale();
   const sessionId = params.sessionId as string;
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,12 +61,9 @@ export default function PreparationPage() {
 
   useEffect(() => {
     loadSession();
-    
-    // Poll for status updates while items are in progress
     const interval = setInterval(() => {
       loadSession();
     }, 2000);
-
     return () => clearInterval(interval);
   }, [loadSession]);
 
@@ -57,12 +73,9 @@ export default function PreparationPage() {
       const response = await fetch(`/api/sessions/${sessionId}/prepare/${itemId}/retry`, {
         method: 'POST',
       });
-
       if (!response.ok) {
         throw new Error('Failed to retry preparation');
       }
-
-      // Reload session to get updated status
       await loadSession();
     } catch (err) {
       console.error('Retry error:', err);
@@ -90,9 +103,9 @@ export default function PreparationPage() {
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-red-800">Error</h3>
+            <h3 className="text-sm font-medium text-red-800">{t('prep.error')}</h3>
             <p className="text-sm text-red-700 mt-1">
-              {error || 'Session not found'}
+              {error || t('prep.notFound')}
             </p>
           </div>
         </div>
@@ -101,8 +114,7 @@ export default function PreparationPage() {
   }
 
   const { session, items } = sessionData;
-  
-  // Filter to only show items that are in the selected list
+
   const prepItems: PrepItem[] = items
     .filter(item => session.selectedIds.includes(item.id))
     .map(item => ({
@@ -119,18 +131,10 @@ export default function PreparationPage() {
   }, {} as Record<PrepStatus, number>);
 
   const getStatusBadge = (status: PrepStatus) => {
-    const badges: Record<PrepStatus, { bg: string; text: string; label: string }> = {
-      pending: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Pending' },
-      downloading: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Downloading' },
-      transcribing: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Transcribing' },
-      ready: { bg: 'bg-green-100', text: 'text-green-800', label: 'Ready' },
-      failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-    };
-
-    const badge = badges[status];
+    const style = STATUS_BADGE_STYLES[status];
     return (
-      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${badge.bg} ${badge.text}`}>
-        {badge.label}
+      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>
+        {t(STATUS_LABEL_KEYS[status])}
       </span>
     );
   };
@@ -172,10 +176,10 @@ export default function PreparationPage() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            Preparation Status
+            {t('prep.title')}
           </h1>
           <p className="text-sm text-gray-600">
-            Preparing {prepItems.length} {prepItems.length === 1 ? 'item' : 'items'}
+            {t('prep.preparingItems', { count: prepItems.length })}
           </p>
         </div>
 
@@ -184,7 +188,7 @@ export default function PreparationPage() {
           {(['pending', 'downloading', 'transcribing', 'ready', 'failed'] as PrepStatus[]).map(status => (
             <div key={status} className="bg-gray-50 rounded-lg p-4">
               <div className="text-2xl font-bold text-gray-900">{statusCounts[status] || 0}</div>
-              <div className="text-sm text-gray-600 capitalize">{status}</div>
+              <div className="text-sm text-gray-600">{t(STATUS_LABEL_KEYS[status])}</div>
             </div>
           ))}
         </div>
@@ -213,10 +217,10 @@ export default function PreparationPage() {
                     {item.artifacts && (
                       <div className="text-xs text-gray-500 mt-2 space-y-1">
                         {item.artifacts.videoPath && (
-                          <div>Video: {item.artifacts.videoPath}</div>
+                          <div>{t('prep.video')}{item.artifacts.videoPath}</div>
                         )}
                         {item.artifacts.transcriptPath && (
-                          <div>Transcript: {item.artifacts.transcriptPath}</div>
+                          <div>{t('prep.transcript')}{item.artifacts.transcriptPath}</div>
                         )}
                       </div>
                     )}
@@ -230,7 +234,7 @@ export default function PreparationPage() {
                       disabled={retrying[item.id]}
                       className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {retrying[item.id] ? 'Retrying...' : 'Retry'}
+                      {retrying[item.id] ? t('prep.retrying') : t('prep.retry')}
                     </button>
                   )}
                   {item.prepStatus === 'ready' && (
@@ -238,7 +242,7 @@ export default function PreparationPage() {
                       href={`/items/${item.id}`}
                       className="inline-block px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
                     >
-                      Open Studio
+                      {t('prep.openStudio')}
                     </a>
                   )}
                 </div>
@@ -262,9 +266,9 @@ export default function PreparationPage() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No items to prepare</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">{t('prep.noItems')}</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Select items from candidate review to begin preparation.
+              {t('prep.noItemsDesc')}
             </p>
           </div>
         )}

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Content Replication Workbench',
-  description: 'Local-first manual content replication tool for Douyin to multi-platform publishing',
+  title: '内容分发工作台 | Content Replication Workbench',
+  description: '多平台内容分发工具 / Multi-platform content replication tool',
 };
 
 export default function RootLayout({
@@ -12,23 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Content Replication Workbench
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Manual multi-platform content replication tool
-              </p>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/lib/i18n/locale-context';
 
 export default function IntakePage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [link, setLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,6 @@ export default function IntakePage() {
         setError(data.error || 'An error occurred');
         setErrorType(data.errorType || null);
         setDetectedType(data.inputType);
-        // For recoverable errors, preserve the link via data.preservedLink
         if (data.preservedLink && data.preservedLink !== link) {
           setLink(data.preservedLink);
         }
@@ -39,23 +40,20 @@ export default function IntakePage() {
         return;
       }
 
-      // Show detected type briefly before navigation
       setDetectedType(data.inputType);
-      
-      // Navigate to the next route
+
       setTimeout(() => {
         router.push(data.nextRoute);
       }, 500);
 
     } catch {
-      setError('Network error. Please check your connection and try again.');
+      setError(t('home.networkError'));
       setIsSubmitting(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLink(e.target.value);
-    // Clear error when user starts typing again
     if (error) {
       setError(null);
       setErrorType(null);
@@ -67,16 +65,16 @@ export default function IntakePage() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          Content Replication Workbench
+          {t('home.title')}
         </h1>
         <p className="text-gray-600 mb-6">
-          Enter a Douyin creator profile or single video link to begin
+          {t('home.description')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-2">
-              Douyin Link
+              {t('home.inputLabel')}
             </label>
             <input
               id="link"
@@ -92,8 +90,8 @@ export default function IntakePage() {
 
           {error && (
             <div className={`${
-              errorType === 'resolution-failure' 
-                ? 'bg-yellow-50 border-yellow-200' 
+              errorType === 'resolution-failure'
+                ? 'bg-yellow-50 border-yellow-200'
                 : 'bg-red-50 border-red-200'
             } border rounded-lg p-4`}>
               <div className="flex items-start">
@@ -112,9 +110,9 @@ export default function IntakePage() {
                   <h3 className={`text-sm font-medium ${
                     errorType === 'resolution-failure' ? 'text-yellow-800' : 'text-red-800'
                   }`}>
-                    {detectedType === 'unsupported' && 'Unsupported Link'}
-                    {errorType === 'resolution-failure' && 'Resolution Failed'}
-                    {!detectedType && !errorType && 'Error'}
+                    {detectedType === 'unsupported' && t('home.unsupportedLink')}
+                    {errorType === 'resolution-failure' && t('home.resolutionFailed')}
+                    {!detectedType && !errorType && t('home.error')}
                   </h3>
                   <p className={`text-sm mt-1 ${
                     errorType === 'resolution-failure' ? 'text-yellow-700' : 'text-red-700'
@@ -123,7 +121,7 @@ export default function IntakePage() {
                   </p>
                   {errorType === 'resolution-failure' && (
                     <p className="text-xs text-yellow-600 mt-2">
-                      You can try again with the same link or enter a different one.
+                      {t('home.retryHint')}
                     </p>
                   )}
                 </div>
@@ -141,8 +139,8 @@ export default function IntakePage() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-green-800">
-                    Detected: <span className="font-medium">
-                      {detectedType === 'creator-profile' ? 'Creator Profile' : 'Single Video'}
+                    {t('home.detected')}<span className="font-medium">
+                      {detectedType === 'creator-profile' ? t('home.creatorProfile') : t('home.singleVideo')}
                     </span>
                   </p>
                 </div>
@@ -155,23 +153,23 @@ export default function IntakePage() {
             disabled={!link.trim() || isSubmitting}
             className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting ? 'Processing...' : 'Continue'}
+            {isSubmitting ? t('home.processing') : t('home.continue')}
           </button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="text-sm font-medium text-gray-900 mb-3">
-            Supported Links
+            {t('home.supportedLinks')}
           </h3>
           <div className="space-y-2 text-sm text-gray-600">
             <div>
-              <span className="font-medium">Creator Profile:</span>
+              <span className="font-medium">{t('home.creatorProfileLabel')}</span>
               <code className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded">
                 https://www.douyin.com/user/...
               </code>
             </div>
             <div>
-              <span className="font-medium">Single Video:</span>
+              <span className="font-medium">{t('home.singleVideoLabel')}</span>
               <code className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded">
                 https://www.douyin.com/video/...
               </code>

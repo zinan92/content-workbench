@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { Session, ContentItem } from '@/lib/domain/types';
 import CandidateTable from '@/components/CandidateTable';
+import { useLocale } from '@/lib/i18n/locale-context';
 
 interface SessionData {
   session: Session;
@@ -17,6 +18,7 @@ type SortDirection = 'asc' | 'desc';
 export default function SessionPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useLocale();
   const sessionId = params.sessionId as string;
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,13 +36,12 @@ export default function SessionPage() {
           throw new Error('Session not found');
         }
         const data = await response.json();
-        
-        // Single-video sessions should redirect directly to preparation
+
         if (data.session?.inputType === 'single-video') {
           router.push(`/sessions/${sessionId}/preparation`);
           return;
         }
-        
+
         setSessionData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load session');
@@ -87,7 +88,6 @@ export default function SessionPage() {
         throw new Error('Failed to prepare selected items');
       }
 
-      // Navigate to preparation page (will be implemented in next feature)
       router.push(`/sessions/${sessionId}/preparation`);
     } catch (err) {
       console.error('Prepare error:', err);
@@ -124,9 +124,9 @@ export default function SessionPage() {
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-red-800">Error</h3>
+            <h3 className="text-sm font-medium text-red-800">{t('session.error')}</h3>
             <p className="text-sm text-red-700 mt-1">
-              {error || 'Session not found'}
+              {error || t('session.notFound')}
             </p>
           </div>
         </div>
@@ -141,26 +141,25 @@ export default function SessionPage() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            {session.inputType === 'creator-profile' ? 'Candidate Review' : 'Session'}
+            {session.inputType === 'creator-profile' ? t('session.candidateReview') : t('session.session')}
           </h1>
           <div className="text-sm text-gray-600 space-y-1">
             <p>
-              <span className="font-medium">Input Type:</span>{' '}
+              <span className="font-medium">{t('session.inputType')}</span>
               <span className="capitalize">{session.inputType.replace('-', ' ')}</span>
             </p>
             <p>
-              <span className="font-medium">Phase:</span>{' '}
+              <span className="font-medium">{t('session.phase')}</span>
               <span className="capitalize">{session.workflowPhase}</span>
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              Link: {session.inputLink}
+              {t('session.link')}{session.inputLink}
             </p>
           </div>
         </div>
 
         {session.inputType === 'creator-profile' && (
           <div className="space-y-4">
-            {/* Partial results warning */}
             {isPartial && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-start">
@@ -177,21 +176,20 @@ export default function SessionPage() {
                   </svg>
                   <div>
                     <h3 className="text-sm font-medium text-yellow-800">
-                      Partial Results
+                      {t('session.partialResults')}
                     </h3>
                     <p className="text-sm text-yellow-700 mt-1">
-                      Discovery returned only part of the available content. You can still review and select from the candidates shown below.
+                      {t('session.partialResultsDesc')}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Candidate table */}
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">
-                  Discovered Videos ({candidates.length})
+                  {t('session.discoveredVideos')} ({candidates.length})
                 </h2>
                 {session.selectedIds.length > 0 && (
                   <button
@@ -199,7 +197,7 @@ export default function SessionPage() {
                     onClick={handlePrepareSelected}
                     disabled={preparing}
                   >
-                    {preparing ? 'Preparing...' : `Prepare Selected (${session.selectedIds.length})`}
+                    {preparing ? t('session.preparing') : `${t('session.prepareSelected')} (${session.selectedIds.length})`}
                   </button>
                 )}
               </div>
@@ -217,8 +215,6 @@ export default function SessionPage() {
             </div>
           </div>
         )}
-
-
       </div>
     </div>
   );
